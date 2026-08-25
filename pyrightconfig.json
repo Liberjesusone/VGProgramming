@@ -1,0 +1,45 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "typeCheckingMode": "basic",
+
+  "exclude": ["**/__pycache__", "**/assets", ".venv"],
+
+  // Reglas apagadas a proposito. TODAS se disparaban por anotaciones
+  // imprecisas de gale o por idioms deliberados del profesor, nunca por
+  // errores reales del codigo. Sin esto el repo muestra ~613 subrayados
+  // rojos que no significan nada, y uno aprende a ignorar los squiggles
+  // (que es justo lo que no queres que pase).
+  //
+  //   reportAttributeAccessIssue  -> gale declara InputData como TypeVar
+  //        restringido, asi que Pylance exige que .pressed exista tambien
+  //        en MouseWheelData/MouseMotionData/GamepadAxisData, que no lo tienen.
+  //   reportArgumentType         -> gale pide pygame.Color y el curso pasa
+  //        tuplas (255,255,255); pygame las acepta perfectamente en runtime.
+  //   reportInvalidTypeVarUse    -> mismo TypeVar de arriba.
+  //   reportInvalidTypeForm      -> el idiom TypeVar("GameLevel") que el curso
+  //        usa como referencia adelantada para evitar imports circulares.
+  //   reportOptionalMemberAccess -> el patron enter_params.get("x") seguido de
+  //        "if x is None: x = ...", que Pylance no sigue.
+  //   reportUnusedExpression     -> la tupla suelta al final de los __init__.py
+  //        que existe justamente para callar linters.
+  "reportAttributeAccessIssue": "none",
+  "reportArgumentType": "none",
+  "reportInvalidTypeVarUse": "none",
+  "reportInvalidTypeForm": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportUnusedExpression": "none",
+
+  "executionEnvironments": [
+    { "root": "00-hello_world" },
+    { "root": "01-pong" },
+    { "root": "02-flappy_bird" },
+    { "root": "03-breakout" },
+    { "root": "04-match3" },
+    { "root": "05-super_martian" },
+    { "root": "06-princess" },
+    { "root": "07-ultimate_fantasy" },
+    { "root": "08-throw_a_bird" },
+    { "root": "." }
+  ]
+}

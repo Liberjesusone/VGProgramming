@@ -52,6 +52,7 @@ class Pong(Game):
                 "done": states.DoneState,
             }
         )
+        self.y_aprox = 0.0
         self.state_machine.change("title", pong=self)
 
     def update(self, dt: float) -> None:

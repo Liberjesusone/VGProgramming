@@ -23,8 +23,46 @@ class PlayState(BaseState):
     def enter(self, pong) -> None:
         self.pong = pong
 
+    def aproximate_impact(self) -> int:
+        pong = self.pong
+
+        if pong.ball.vx > 0: # is moving right
+            return int(settings.VIRTUAL_HEIGHT / 2) # center
+
+        m = pong.ball.vy / pong.ball.vx 
+        x_wall = settings.PADDLE_WIDTH + settings.PADDLE_X_OFFSET
+        x_o = pong.ball.x
+        y_o = pong.ball.y + pong.ball.height / 2 
+        y_aprox = m * (x_wall - x_o) + y_o
+        y_module = y_aprox % (settings.VIRTUAL_HEIGHT - pong.ball.height)
+        y_div = int(y_aprox / (settings.VIRTUAL_HEIGHT - pong.ball.height))
+        #y_aprox = y_module if y_module > 0 else settings.VIRTUAL_HEIGHT + y_module
+
+        if y_aprox < 0:
+            # we flip the module because python returns always with the sign of the divisor
+            y_module = -(settings.VIRTUAL_HEIGHT - pong.ball.height - y_module)
+            y_aprox = -y_module if y_div == 0 or y_div % 2 == 0 else settings.VIRTUAL_HEIGHT + y_module
+        else:
+            y_aprox = y_module if y_div == 0 or y_div % 2 == 0 else settings.VIRTUAL_HEIGHT - y_module
+        return y_aprox
+
     def update(self, dt: float) -> None:
         pong = self.pong
+
+        # Player 1 (left paddle) is going to be controlled by IA
+        pong.y_aprox = self.aproximate_impact()
+
+        # if it's really near we stop moving 
+        center_IA_paddle = pong.player1.y + pong.player1.height / 2
+        if center_IA_paddle - pong.y_aprox < 2 and center_IA_paddle - pong.y_aprox > -2:
+            pong.player1.vy = 0
+        # if it's over the y_aprox
+        elif center_IA_paddle < pong.y_aprox:
+            pong.player1.vy = settings.PADDLE_SPEED
+        # if it's bellow the y_aprox
+        else:
+            pong.player1.vy = -1 * settings.PADDLE_SPEED
+
         pong.player1.update(dt)
         pong.player2.update(dt)
         pong.ball.update(dt)
@@ -103,16 +141,16 @@ class PlayState(BaseState):
     def on_input(self, input_id: str, input_data: InputData) -> None:
         pong = self.pong
 
-        if input_id in ("p1_up", "p1_down"):
-            if input_data.pressed:
-                pong.player1.vy = (
-                    -settings.PADDLE_SPEED if input_id == "p1_up" else settings.PADDLE_SPEED
-                )
-            elif input_data.released:
-                sign = -1 if input_id == "p1_up" else 1
-                if pong.player1.vy == sign * settings.PADDLE_SPEED:
-                    pong.player1.vy = 0
-        elif input_id in ("p2_up", "p2_down"):
+        #if input_id in ("p1_up", "p1_down"):
+        #    if input_data.pressed:
+        #        pong.player1.vy = (
+        #            -settings.PADDLE_SPEED if input_id == "p1_up" else settings.PADDLE_SPEED
+        #        )
+        #    elif input_data.released:
+        #        sign = -1 if input_id == "p1_up" else 1
+        #        if pong.player1.vy == sign * settings.PADDLE_SPEED:
+        #            pong.player1.vy = 0
+        if input_id in ("p2_up", "p2_down"):
             if input_data.pressed:
                 pong.player2.vy = (
                     -settings.PADDLE_SPEED if input_id == "p2_up" else settings.PADDLE_SPEED

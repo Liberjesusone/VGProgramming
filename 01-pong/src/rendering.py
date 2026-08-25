@@ -33,6 +33,8 @@ def render_table(surface: pygame.Surface, pong) -> None:
     pong.player1.render(surface)
     pong.player2.render(surface)
     pong.ball.render(surface)
+    pygame.draw.rect(surface,  (0, 0, 255), pygame.Rect(
+        round(settings.PADDLE_WIDTH + settings.PADDLE_X_OFFSET), round(pong.y_aprox+2), 4, 4))
 
     render_text(
         surface,

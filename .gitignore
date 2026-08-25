@@ -25,7 +25,7 @@ htmlcov/
 07-ultimate_fantasy/saves/
 
 # Editors / IDEs
-.vscode/
+#.vscode/
 .idea/
 *.swp
 *.swo
@@ -33,3 +33,4 @@ htmlcov/
 # OS files
 .DS_Store
 Thumbs.db
+inf.md

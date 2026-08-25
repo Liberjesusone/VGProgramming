@@ -1,0 +1,27 @@
+{
+  // Interprete del venv de la raiz. VS Code lo usa para correr, depurar y
+  // para que Pylance sepa donde estan pygame y gale.
+  "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+
+  // Que cada terminal nueva entre al venv sola (no tenes que activarlo a mano).
+  "python.terminal.activateEnvironment": true,
+
+  // Ayudas para venir de un lenguaje tipado: VS Code muestra los tipos que
+  // infiere aunque el codigo no los escriba. Util mientras agarras el idioma.
+  "python.analysis.inlayHints.variableTypes": true,
+  "python.analysis.inlayHints.functionReturnTypes": true,
+  "python.analysis.inlayHints.callArgumentNames": "partial",
+
+  // Los assets son binarios; sacarlos de la busqueda hace Ctrl+Shift+F util.
+  "search.exclude": {
+    "**/assets/**": true,
+    "**/__pycache__/**": true,
+    ".venv/**": true
+  },
+
+  "[python]": {
+    "editor.rulers": [88],
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+  }
+}

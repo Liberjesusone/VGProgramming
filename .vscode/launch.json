@@ -1,0 +1,46 @@
+{
+  // Documentacion: https://code.visualstudio.com/docs/python/debugging
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // F5 desde CUALQUIER archivo dentro de la carpeta de un juego.
+      // El lanzador sube hasta el main.py de ese juego y lo corre.
+      "name": "Juego del archivo abierto",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/.vscode/run_current_game.py",
+      "args": ["${file}"],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      // Por si preferis elegir de una lista en vez de depender del archivo abierto.
+      "name": "Elegir juego de la lista",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/${input:juego}/main.py",
+      "cwd": "${workspaceFolder}/${input:juego}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ],
+  "inputs": [
+    {
+      "id": "juego",
+      "type": "pickString",
+      "description": "Cual estudio de caso queres correr?",
+      "default": "00-hello_world",
+      "options": [
+        "00-hello_world",
+        "01-pong",
+        "02-flappy_bird",
+        "03-breakout",
+        "04-match3",
+        "05-super_martian",
+        "06-princess",
+        "07-ultimate_fantasy",
+        "08-throw_a_bird"
+      ]
+    }
+  ]
+}
