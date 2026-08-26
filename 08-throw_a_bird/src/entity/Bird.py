@@ -22,7 +22,6 @@ from gale.physics.world import World
 
 import settings
 from src.definitions.entity import BIRD, density_for_circle
-from src.entity._physics_util import set_damping
 
 
 class Bird:
@@ -41,7 +40,7 @@ class Bird:
                 restitution=BIRD["restitution"],
             ),
         )
-        set_damping(self.body, BIRD["linear_damping"], BIRD["angular_damping"])
+        self.body.set_damping(BIRD["linear_damping"], BIRD["angular_damping"])
         self.body.user_data = self
 
         self.initial_position = pygame.Vector2(x, y)

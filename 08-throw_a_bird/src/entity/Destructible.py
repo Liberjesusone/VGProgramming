@@ -11,17 +11,24 @@ a physics body (box or circle, per its archetype) that tracks an "energy"
 (stone/wood only -- the aliens have a single sprite at every tier, just
 like the original), and is destroyed once energy reaches 0.
 
-Deviation from the Lua source: the original's on_collision fires for as
-long as two bodies keep touching (every physics step), but gale.physics.World
-only exposes on_collision_begin/on_collision_end (see gale/physics/world.py).
-Damage is applied here on begin-contact only, i.e. once per impact rather
-than every step two things are in contact. This reads as the *more*
-correct behavior for this game anyway: the Lua version's speed > 20
-threshold already exists to stop a resting stack from bleeding energy
-every frame, but only begin-contact ever risks it firing again after
-something has come to rest (e.g. if it very slightly re-settles),
-matching "damage happens on impact" far more literally than "damage
-happens for as long as two things are touching."
+on_collision (called from Level._apply_collision_damage, see
+src/world/Level.py) is checked on every physics step for every pair of
+bodies still touching, matching the Lua source's own on_collision, which
+fires for as long as two bodies keep touching rather than once per
+impact. An earlier version of this file applied damage only on
+gale.physics.World's begin-contact event (the only "collision started"
+signal it exposes), reasoning that the speed > 20 threshold already
+guards against a resting stack bleeding energy every frame. That missed
+a whole class of hits, though: BLOCKS in Level.py places neighbors only
+a few pixels apart, so gravity settles every pair into permanent contact
+within the first few steps after the level loads, at a speed under the
+threshold -- and since that pair then never separates again, begin-contact
+never fires for it a second time. A block later punched hard into an
+already-touching neighbor (most often an alien boxed in on multiple
+sides) dealt no damage through that contact no matter the impact speed.
+Checking every still-touching pair every step catches that case too,
+while the speed threshold keeps a merely resting contact from dealing
+damage.
 """
 
 import math
@@ -33,7 +40,6 @@ from gale.physics.world import World
 
 import settings
 from src.definitions.entity import ARCHETYPES, density_for_box, density_for_circle
-from src.entity._physics_util import set_damping
 
 # A collision against the ground reads the destructible's own speed
 # instead of "the other body's" (there is no other body, the ground never
@@ -85,7 +91,7 @@ class Destructible:
 
         self.body = world.create_dynamic_body(x, y, shape)
         self.body.angle = angle
-        set_damping(self.body, defn["linear_damping"], defn["angular_damping"])
+        self.body.set_damping(defn["linear_damping"], defn["angular_damping"])
         self.body.user_data = self
 
         self.mass: float = defn["mass"]

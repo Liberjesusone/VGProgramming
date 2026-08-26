@@ -90,7 +90,6 @@ HUD_TEXT = "Drag the bird to aim and release to fling. Drag elsewhere to pan."
 class PlayState(BaseState):
     def enter(self) -> None:
         self.world = World(gravity=settings.GRAVITY)
-        self.world.on_collision_begin(self._on_collision)
 
         self.level = Level(self.world)
         self.bird = Bird(self.world, self.level.bird_start.x, self.level.bird_start.y)
@@ -120,6 +119,7 @@ class PlayState(BaseState):
         # would otherwise run a second, redundant accumulator on top of
         # World's own.
         self.world.fixed_update()
+        self.level.fixed_update()
 
     def update(self, dt: float) -> None:
         self.level.update(dt)
@@ -264,6 +264,3 @@ class PlayState(BaseState):
                 left - CAMERA_PAN_MARGIN, min(right + CAMERA_PAN_MARGIN, target.x)
             )
             self.camera_target.update(target)
-
-    def _on_collision(self, body_a, body_b) -> None:
-        self.level.handle_collision(body_a, body_b)

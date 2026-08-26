@@ -200,6 +200,31 @@ class Level:
         self._collect_destroyed()
         self.debris = [chip for chip in self.debris if chip.alive]
 
+    def fixed_update(self) -> None:
+        self._apply_collision_damage()
+
+    def _apply_collision_damage(self) -> None:
+        # Blocks placed touching (or nearly touching) their neighbors in
+        # BLOCKS settle into permanent contact within the first few physics
+        # steps after the level loads -- gravity closes the small gaps at a
+        # speed under DAMAGE_SPEED_THRESHOLD, so that one-time contact never
+        # registers damage, and since the pair never separates again,
+        # world.on_collision_begin never fires for it a second time either.
+        # A block later punched into an already-touching neighbor (an alien
+        # boxed in by its neighbors, most commonly) would then never deal
+        # damage through that contact no matter how hard the impact, since
+        # begin-contact only fires on a fresh touch. Checking every body
+        # still in contact on every fixed step instead -- not just the
+        # instant contact begins -- catches that case too; the existing
+        # DAMAGE_SPEED_THRESHOLD in Destructible.on_collision already keeps
+        # a resting contact from bleeding energy every step.
+        for block in self.blocks:
+            if block.destroyed:
+                continue
+
+            for other in block.body.touching_bodies:
+                self._handle_pair(block.body, other)
+
     def _apply_wind(self, dt: float) -> None:
         # sign > 0 (left zone) pushes toward +x, sign < 0 (right zone)
         # pushes toward -x -- both back toward the play area's center.
@@ -233,10 +258,6 @@ class Level:
             self.world.destroy_body(block.body)
 
         self.blocks = survivors
-
-    def handle_collision(self, body_a, body_b) -> None:
-        self._handle_pair(body_a, body_b)
-        self._handle_pair(body_b, body_a)
 
     def _handle_pair(self, body, other) -> None:
         entity = body.user_data

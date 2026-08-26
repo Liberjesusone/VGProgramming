@@ -8,11 +8,15 @@ set of game-programming concepts (game loop, states, collisions, tile maps, UI,
 inventory systems, physics, etc.), using [Gale](https://pypi.org/project/gale-engine/),
 a small Python game engine built on top of [Pygame](https://www.pygame.org/).
 
+## Getting started
+
+[`00-hello_world`](00-hello_world) is a minimal introductory exercise to get
+familiar with Gale before diving into an actual game.
+
 ## Study cases
 
 | # | Project | Study case |
 |---|---------|------------|
-| 00 | [`00-hello_world`](00-hello_world) | Hello World |
 | 01 | [`01-pong`](01-pong) | Pong |
 | 02 | [`02-flappy_bird`](02-flappy_bird) | Flappy Bird |
 | 03 | [`03-breakout`](03-breakout) | Breakout |
