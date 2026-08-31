@@ -18,8 +18,8 @@ import settings
 COLOR_PALETTE = (
     (99, 155, 255),  # blue
     (106, 190, 47),  # green
-    (217, 87, 99),  # red
-    (215, 123, 186),  # purple
+    (217, 87, 99),   # red
+    (215, 123, 186), # purple
     (251, 242, 54),  # gold
 )
 
@@ -33,8 +33,8 @@ class Brick:
 
         self.texture = settings.TEXTURES["spritesheet"]
 
-        self.tier = 0  # [0, 3]
-        self.color = 0  # [0, 4]
+        self.tier = 0   # inn [0, 3]
+        self.color = 0  # inn [0, 4]
 
         # To decide whether render it or not and collision detection
         self.active = True
@@ -68,6 +68,18 @@ class Brick:
                 self.color -= 1
         else:
             self.tier -= 1
+
+    def destroy(self) -> None:
+        settings.SOUNDS["brick_hit_1"].stop()
+        settings.SOUNDS["brick_hit_1"].play()
+
+        r, g, b = COLOR_PALETTE[self.color]
+        self.particle_system.set_colors([(r, g, b, 10), (r, g, b, 50)])
+        self.particle_system.generate()
+        
+        self.color = 0
+        self.tier = 0
+        self.broken = True
 
     def score(self):
         return self.tier * 200 + (self.color + 1) * 25

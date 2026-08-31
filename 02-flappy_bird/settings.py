@@ -18,7 +18,12 @@ from gale import input_handler
 
 input_handler.InputHandler.set_keyboard_action(input_handler.KEY_ESCAPE, "quit")
 input_handler.InputHandler.set_keyboard_action(input_handler.KEY_RETURN, "confirm")
-input_handler.InputHandler.set_mouse_click_action(input_handler.MOUSE_BUTTON_1, "jump")
+input_handler.InputHandler.set_keyboard_action(input_handler.KEY_SPACE, "jump")
+input_handler.InputHandler.set_keyboard_action(input_handler.KEY_p, "pause")
+input_handler.InputHandler.set_keyboard_action(input_handler.KEY_h, "hard_mode")
+input_handler.InputHandler.set_keyboard_action(input_handler.KEY_BACKSPACE, "return_home")
+input_handler.InputHandler.set_keyboard_action(input_handler.KEY_RIGHT, "move_right")
+input_handler.InputHandler.set_keyboard_action(input_handler.KEY_LEFT, "move_left")
 
 TITLE = "Flappy Bird"
 
@@ -32,10 +37,14 @@ VIRTUAL_HEIGHT = 288
 
 BIRD_WIDTH = 39
 BIRD_HEIGHT = 28
+BIRD_X_SPEED = BIRD_HEIGHT * 3
 
 LOG_WIDTH = 70
 LOG_HEIGHT = 288
 LOGS_GAP = 90
+LOGS_CLOSING_SPEED = 20
+LOGS_MIN_GAP = BIRD_HEIGHT * 2.5
+LOGS_MAX_GAP = VIRTUAL_HEIGHT - 60
 
 GROUND_HEIGHT = 16
 
@@ -53,10 +62,19 @@ MEDIUM_TEXT_SIZE = 18
 HUGE_TEXT_SIZE = 56
 FLAPPY_TEXT_SIZE = 28
 
+POWER_UP_WIDTH = 35
+POWER_UP_HEIGHT = 35
+POWER_UP_SPEED = 70
+POWER_UP_SPAWN_TIME = 8
+
 BASE_DIR = Path(__file__).parent
 
 TEXTURES = {
     "bird": pygame.image.load(BASE_DIR / "assets" / "graphics" / "bird.png"),
+    "ghost": pygame.image.load(BASE_DIR / "assets" / "graphics" / "ghost.png"),
+    "power_up": pygame.transform.scale(
+      pygame.image.load(BASE_DIR / "assets" / "graphics" / "power_up.png"),
+      (POWER_UP_WIDTH, POWER_UP_HEIGHT)),
     "background": pygame.image.load(BASE_DIR / "assets" / "graphics" / "background.png"),
     "ground": pygame.image.load(BASE_DIR / "assets" / "graphics" / "ground.png"),
     "log": pygame.image.load(BASE_DIR / "assets" / "graphics" / "log.png"),
@@ -69,9 +87,13 @@ SOUNDS = {
     "explosion": pygame.mixer.Sound(BASE_DIR / "assets" / "sounds" / "explosion.wav"),
     "hurt": pygame.mixer.Sound(BASE_DIR / "assets" / "sounds" / "hurt.wav"),
     "score": pygame.mixer.Sound(BASE_DIR / "assets" / "sounds" / "score.wav"),
+    "punch": pygame.mixer.Sound(BASE_DIR / "assets" / "sounds" / "punch.mp3"),
 }
 
-pygame.mixer.music.load(BASE_DIR / "assets" / "sounds" / "marios_way.ogg")
+NORMAL_MUSIC = BASE_DIR / "assets" / "sounds" / "marios_way.wav" 
+GHOST_MUSIC = BASE_DIR / "assets" / "sounds" / "ghost.wav" 
+
+pygame.mixer.music.load(NORMAL_MUSIC)
 
 FONTS = {
     "medium": pygame.font.Font(BASE_DIR / "assets" / "fonts" / "font.ttf", MEDIUM_TEXT_SIZE),

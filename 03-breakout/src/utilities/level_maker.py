@@ -15,7 +15,7 @@ from src.Brick import Brick
 from src.BrickSet import Brickset
 
 
-def create_level(level: int) -> List[Brick]:
+def create_level(level: int) -> Brickset:
     num_rows = random.randint(1, 5)
     num_cols = random.randint(7, 13)
 

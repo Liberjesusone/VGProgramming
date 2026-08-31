@@ -10,6 +10,8 @@ This file contains the definition of the class CountDownState.
 
 import pygame
 
+from typing import Optional
+
 from gale.state import BaseState
 from gale.text import render_text
 
@@ -18,8 +20,8 @@ from src.World import World
 
 
 class CountDownState(BaseState):
-    def enter(self) -> None:
-        self.world = World(generate_logs=False)
+    def enter(self, world: Optional[World] = None) -> None:
+        self.world = world if world is not None else World(generate_logs=False)
         self.counter = 3
         self.timer = 0.0
 

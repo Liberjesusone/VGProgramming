@@ -22,26 +22,37 @@ from src.World import World
 
 
 class PlayingState(BaseState):
-    def enter(self, world: Optional[World] = None) -> None:
+
+    # We receive the information of the world, bird and score from the previous state
+    # CountDownState only sends the world 
+    # PauseState sends the world, bird and score
+    def enter(self, 
+              world: Optional[World] = None, 
+              bird: Optional[Bird] = None,
+              score: Optional[int] = None) -> None:
         self.world = world if world is not None else World()
         self.world.reset(True)
-        self.bird = Bird(
+        
+        self.bird = bird if bird is not None else Bird(
             settings.VIRTUAL_WIDTH / 2 - settings.BIRD_WIDTH / 2,
             settings.VIRTUAL_HEIGHT / 2 - settings.BIRD_HEIGHT / 2,
             settings.BIRD_WIDTH,
             settings.BIRD_HEIGHT,
         )
-        self.score = 0
+        self.score = score if score is not None else 0
 
     def update(self, dt: float) -> None:
         self.bird.update(dt)
         self.world.update(dt)
 
-        if self.world.collides(self.bird.get_rect()):
-            settings.SOUNDS["explosion"].play()
+        if self.world.collides(self.bird.get_rect()) and not self.bird.is_ghost:
             settings.SOUNDS["hurt"].play()
-            self.state_machine.change("count_down")
+            self.state_machine.change("finish", world=self.world, bird=self.bird, score=self.score)
             return
+
+        if self.world.power_up_collides(self.bird.get_rect()):
+            self.bird.set_ghost()
+            self.world.power_up = None
 
         if self.world.update_scored(self.bird.get_rect()):
             self.score += 1
@@ -61,5 +72,12 @@ class PlayingState(BaseState):
         )
 
     def on_input(self, input_id: str, input_data: InputData) -> None:
+        if input_id == "pause" and input_data.pressed:
+            self.state_machine.change("pause", world=self.world, 
+                                       bird=self.bird, score=self.score)
+
         if input_id == "jump" and input_data.pressed:
             self.bird.jump()
+
+        if self.world.mode.allow_hor_movement() and input_id in ("move_left", "move_right"):
+            self.bird.move(input_id == "move_left", input_data.pressed) 

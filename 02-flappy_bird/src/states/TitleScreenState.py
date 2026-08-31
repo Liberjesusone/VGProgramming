@@ -16,7 +16,7 @@ from gale.text import render_text
 
 import settings
 from src.World import World
-
+from src.GameMode import GameMode, NormalMode, HardMode
 
 class TitleScreenState(BaseState):
     def enter(self) -> None:
@@ -47,7 +47,19 @@ class TitleScreenState(BaseState):
             center=True,
             shadowed=True,
         )
+        render_text(
+            surface,
+            "Press H to start at hard difficulty",
+            settings.FONTS["medium"],
+            settings.VIRTUAL_WIDTH / 2,
+            2 * settings.VIRTUAL_HEIGHT / 3 + 20,
+            settings.COLOR_WHITE,
+            center=True,
+            shadowed=True,
+        )
 
     def on_input(self, input_id: str, input_data: InputData) -> None:
         if input_id == "confirm" and input_data.pressed:
             self.state_machine.change("count_down")
+        if input_id == "hard_mode" and input_data.pressed:
+            self.state_machine.change("count_down", World(False, HardMode()))

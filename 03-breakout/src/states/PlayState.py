@@ -16,6 +16,7 @@ from gale.factory import AbstractFactory
 from gale.state import BaseState
 from gale.input_handler import InputData
 from gale.text import render_text
+from typing import Optional
 
 import settings
 import src.powerups
@@ -44,19 +45,29 @@ class PlayState(BaseState):
 
         self.powerups_abstract_factory = AbstractFactory("src.powerups")
 
+        self.stuck_next = False # True when have earned a StopBall power_up
+        self.l_rocket = None    # left rocket
+        self.r_rocket = None    # right rocket
+
     def update(self, dt: float) -> None:
         self.paddle.update(dt)
 
         for ball in self.balls:
             ball.update(dt)
+            if ball.is_stuck: 
+                continue
+            
             ball.solve_world_boundaries()
 
             # Check collision with the paddle
             if ball.collides(self.paddle):
                 settings.SOUNDS["paddle_hit"].stop()
                 settings.SOUNDS["paddle_hit"].play()
-                ball.rebound(self.paddle)
-                ball.push(self.paddle)
+                if self.stuck_next:
+                    ball.is_stuck = True
+                else:
+                    ball.rebound(self.paddle)
+                    ball.push(self.paddle)
 
             # Check collision with brickset
             if not ball.collides(self.brickset):
@@ -94,6 +105,47 @@ class PlayState(BaseState):
                         r.centerx - 8, r.centery - 8
                     )
                 )
+            # Chance to generate one StopBall power up
+            elif random.random() < 0.3:
+                r = brick.get_collision_rect()
+                self.powerups.append(
+                    self.powerups_abstract_factory.get_factory("StopBall").create(
+                        r.centerx - 8, r.centery - 8
+                    )
+                )
+            # Chance to generate one Rocket power up
+            elif random.random() < 0.5 and self.l_rocket is None and self.r_rocket is None:
+                r = brick.get_collision_rect()
+                self.powerups.append(
+                    self.powerups_abstract_factory.get_factory("Rocket").create(
+                        r.centerx - 8, r.centery - 8
+                    )
+                )
+            # Chance to generate one BreakBrick power up
+            elif random.random() < 1:
+                r = brick.get_collision_rect()
+                self.powerups.append(
+                    self.powerups_abstract_factory.get_factory("BreakBricks").create(
+                        r.centerx - 8, r.centery - 8
+                    )
+                )
+
+        def rocket_update(rocket):
+            if rocket is None:
+                return None
+            if rocket.was_taken and not rocket.was_fired:
+                rocket.x = self.paddle.x - 16 if rocket.is_left else self.paddle.x + self.paddle.width
+                rocket.y = self.paddle.y
+            rocket.update(dt)
+            brick = self.brickset.get_colliding_brick(rocket.get_collision_rect())
+            if brick is not None:
+                brick.destroy()
+                self.score += brick.score()
+                return None  # it was consumed
+            return rocket    # it's still alived
+
+        self.l_rocket = rocket_update(self.l_rocket)
+        self.r_rocket = rocket_update(self.r_rocket)
 
         # Removing all balls that are not in play
         self.balls = [ball for ball in self.balls if ball.active]
@@ -128,9 +180,7 @@ class PlayState(BaseState):
         self.powerups = [p for p in self.powerups if p.active]
 
         # Check victory
-        if self.brickset.size == 1 and next(
-            (True for _, b in self.brickset.bricks.items() if b.broken), False
-        ):
+        if self.brickset.size == 0:
             self.state_machine.change(
                 "victory",
                 lives=self.lives,
@@ -176,7 +226,15 @@ class PlayState(BaseState):
         self.paddle.render(surface)
 
         for ball in self.balls:
+            if ball.is_stuck:
+                ball.x = self.paddle.x + self.paddle.width / 2
+                ball.y = self.paddle.y - 5
             ball.render(surface)
+
+        if self.l_rocket is not None:
+            self.l_rocket.render(surface, self)
+        if self.r_rocket is not None:
+            self.r_rocket.render(surface, self)
 
         for powerup in self.powerups:
             powerup.render(surface)
@@ -205,3 +263,15 @@ class PlayState(BaseState):
                 live_factor=self.live_factor,
                 powerups=self.powerups,
             )
+        elif input_id == "serve" and any(ball.is_stuck for ball in self.balls):
+            self.stuck_next = False
+            stuck_ball = [ball for ball in self.balls if ball.is_stuck]
+            for ball in stuck_ball:                
+                ball.vx = random.randint(-80, 80)
+                ball.vy = random.randint(-170, -100)
+                settings.SOUNDS["paddle_hit"].play()
+                ball.is_stuck = False
+        elif input_id == "fire" and self.l_rocket is not None and self.r_rocket is not None:
+            if not self.l_rocket.was_fired and not self.r_rocket.was_fired:
+                self.l_rocket.fire()
+                self.r_rocket.fire()
