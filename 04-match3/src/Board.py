@@ -149,10 +149,35 @@ class Board:
 
         return self.matches if len(self.matches) > 0 else None
 
+    def destroy_tile(self, tile: Optional[Tile]) -> None:
+        """Remove a tile from the grid. If it's a power_up, also destroys
+        whatever its effect covers, recursively, through this same
+        method, so a power-up caught in another power-up's blast chains
+        into its own effect too."""
+        if tile is None or self.tiles[tile.i][tile.j] is None:
+            return  # already gone, e.g. destroyed earlier in a chain
+
+        combo_level = tile.combo_level
+        self.tiles[tile.i][tile.j] = None
+
+        # Line-clear: the whole row and the whole column.
+        if combo_level == 4:
+            for j in range(settings.BOARD_WIDTH):
+                self.destroy_tile(self.tiles[tile.i][j])
+            for i in range(settings.BOARD_HEIGHT):
+                self.destroy_tile(self.tiles[i][tile.j])
+
+        # Color bomb: every remaining tile of the same color.
+        elif combo_level == 5:
+            for row in self.tiles:
+                for other in row:
+                    if other is not None and other.color == tile.color:
+                        self.destroy_tile(other)
+
     def remove_matches(self) -> None:
         for match in self.matches:
             for tile in match:
-                self.tiles[tile.i][tile.j] = None
+                self.destroy_tile(tile)
 
         self.matches = []
 

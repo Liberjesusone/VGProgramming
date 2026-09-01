@@ -106,7 +106,7 @@ class PlayState(BaseState):
                     )
                 )
             # Chance to generate one StopBall power up
-            elif random.random() < 0.3:
+            elif random.random() < 0.2:
                 r = brick.get_collision_rect()
                 self.powerups.append(
                     self.powerups_abstract_factory.get_factory("StopBall").create(
@@ -114,7 +114,7 @@ class PlayState(BaseState):
                     )
                 )
             # Chance to generate one Rocket power up
-            elif random.random() < 0.5 and self.l_rocket is None and self.r_rocket is None:
+            elif random.random() < 0.1 and self.l_rocket is None and self.r_rocket is None:
                 r = brick.get_collision_rect()
                 self.powerups.append(
                     self.powerups_abstract_factory.get_factory("Rocket").create(
@@ -122,7 +122,7 @@ class PlayState(BaseState):
                     )
                 )
             # Chance to generate one BreakBrick power up
-            elif random.random() < 1:
+            elif random.random() < 0.2:
                 r = brick.get_collision_rect()
                 self.powerups.append(
                     self.powerups_abstract_factory.get_factory("BreakBricks").create(
