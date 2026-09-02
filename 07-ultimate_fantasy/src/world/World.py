@@ -43,12 +43,19 @@ class World:
         }
         self.current_region_name = "center"
 
+        # Whether this playthrough has any progress not yet written to a
+        # save slot -- set on every real gameplay input (see on_input) and
+        # cleared right after a successful save (see PlayState.save_game).
+        # Used to warn the player before something that would discard it:
+        # loading a different slot or quitting (see PauseMenuState).
+        self.dirty = False
+
         self.party = Party(party_genders, self)
 
         # World is constructed both for a new game (SelectCharacterState
-        # already stopped "intro") and for a loaded save (StartState's
-        # "continue" path never does), so stop it here too -- redundant
-        # in the first case, the actual fix in the second.
+        # already stopped "intro") and for a loaded save ("Load game"
+        # never does), so stop it here too -- redundant in the first case,
+        # the actual fix in the second.
         settings.stop_music("intro")
         settings.play_music("town")
 
@@ -131,10 +138,37 @@ class World:
         self.party.update(dt)
 
     def on_input(self, input_id: str, input_data: Any) -> None:
+        if input_data.pressed:
+            self.dirty = True
+
         self.party.on_input(input_id, input_data)
 
         if input_id == "space" and input_data.pressed:
             self._try_interact()
+
+    def freeze_party(self) -> None:
+        """Clears every held movement key, without otherwise touching the
+        party's current state.
+
+        PlayState.update (and so World.update/Party.update) stops running
+        the instant something is pushed on top of PlayState -- but a step
+        already mid-tween is driven by the process-wide Timer, which keeps
+        running regardless of the state stack, so it finishes on its own
+        (with no animation meanwhile, since the character's own update
+        doesn't run either) and lands cleanly on its destination tile
+        instead of being interrupted mid-stride (a visible teleport or
+        speed-up on the next step, depending on how it's interrupted).
+        What must NOT happen is that finished step chaining into another
+        one: PartyWalkState._on_step_finished reads self.party.held to
+        decide whether to keep walking, and since the release event for a
+        key let go of *while* something covers PlayState never reaches
+        Party.on_input to update it, held could otherwise still read
+        stale/true and the party would resume walking on its own once
+        uncovered. Clearing it here, right before pushing whatever should
+        pause gameplay (a dialogue, a menu, ...), prevents that regardless
+        of whether the current step is still mid-tween or already idle."""
+        for key in self.party.held:
+            self.party.held[key] = False
 
     def _try_interact(self) -> None:
         from src.states.game.DialogueState import DialogueState
@@ -150,6 +184,7 @@ class World:
 
             if dx <= 1 and dy <= 1:
                 text = npc.on_interact()
+                self.freeze_party()
                 self.stack.push(DialogueState(self.stack), text=text)
                 return
 

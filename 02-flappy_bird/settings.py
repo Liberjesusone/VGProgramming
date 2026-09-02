@@ -48,6 +48,14 @@ LOGS_MAX_GAP = VIRTUAL_HEIGHT - 60
 
 GROUND_HEIGHT = 16
 
+# Vertical range a log pair's top-log y may take (see World.update). The
+# lower bound keeps a sliver of the top log's edge on screen; the upper
+# bound keeps the full LOGS_GAP opening above the ground -- without it, a
+# pair could spawn so low the top log's bottom edge sits at or past the
+# ground, leaving no passable opening at all.
+MIN_LOG_Y = -LOG_HEIGHT + 10
+MAX_LOG_Y = VIRTUAL_HEIGHT - GROUND_HEIGHT - LOGS_GAP - LOG_HEIGHT
+
 BACKGROUND_LOOPING_POINT = 1157
 
 MAIN_SCROLL_SPEED = 100

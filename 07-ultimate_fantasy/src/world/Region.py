@@ -9,7 +9,9 @@ This file contains the class Region: procedurally generates a single
 screen's worth of overworld tiles (base grass, fence border with optional
 gates, and a decoration layer of flowers/tall-grass/NPCs). There is no
 Tiled/TMX map here -- everything is generated directly in code, exactly
-like the original.
+like the original. The three layers live in a single gale.tilemap.TileMap
+instead of a bespoke class, but the generation algorithm itself --
+order, randomness, gate carving -- is untouched.
 """
 
 import random
@@ -18,13 +20,12 @@ from typing import Any, Dict, Optional
 import pygame
 
 from gale.state import StateMachine
+from gale.tilemap import TileMap
 
 import settings
 from src.definitions.entity import ENTITY_DEFS, ENTITY_HEIGHT, ENTITY_WIDTH
 from src.entity.NPC import NPC
 from src.states.entity.NPCIdleState import NPCIdleState
-from src.world.Tile import Tile
-from src.world.TileMap import TileMap
 
 TILE_IDS = settings.TILE_IDS
 
@@ -39,10 +40,24 @@ class Region:
         self.is_town: bool = definition.get("is_town", False)
         self.num_npcs: int = random.randint(2, 4) if self.is_town else 0
         self.npcs = []
+        # Own copies, popped from in _create_npc to avoid repeating a name
+        # within this one region -- ENTITY_DEFS["npcs"][gender]["names"]
+        # itself must never be mutated directly: it's a single shared list
+        # for the whole process, so popping it there would permanently
+        # shrink it every time ANY Region is ever created, eventually
+        # raising "empty range for randrange()" once enough of them (e.g.
+        # loading a different save mid-game, which builds a whole new
+        # World/town Region on top of whichever one(s) came before it)
+        # had already drained it.
+        self._available_npc_names = {
+            gender: list(ENTITY_DEFS["npcs"][gender]["names"])
+            for gender in ("male", "female")
+        }
 
-        self.base_layer = TileMap(self.tile_width, self.tile_height)
-        self.fence_layer = TileMap(self.tile_width, self.tile_height)
-        self.grass_layer = TileMap(self.tile_width, self.tile_height)
+        self.tilemap = TileMap(
+            settings.TILE_SIZE, settings.TILE_SIZE, self.tile_width, self.tile_height
+        )
+        self.tilemap.add_tileset(settings.TILESET)
 
         self.gates = {
             "north": definition.get("north_gate", False),
@@ -57,16 +72,14 @@ class Region:
         width, height = self.tile_width, self.tile_height
 
         # Step A: base layer (ground) -- every cell a random grass variant.
+        base = self.tilemap.add_layer("base")
         for y in range(1, height + 1):
-            row = []
             for x in range(1, width + 1):
-                tile_id = random.choice(TILE_IDS["grass"])
-                row.append(Tile(x, y, tile_id))
-            self.base_layer.tiles.append(row)
+                base[y - 1][x - 1] = random.choice(TILE_IDS["grass"])
 
         # Step B: fence layer (border wall).
+        fence = self.tilemap.add_layer("fence")
         for y in range(1, height + 1):
-            row = []
             for x in range(1, width + 1):
                 if y == 1:
                     if x == 1:
@@ -89,47 +102,46 @@ class Region:
                 else:
                     tile_id = TILE_IDS["empty"]
 
-                row.append(Tile(x, y, tile_id))
-            self.fence_layer.tiles.append(row)
+                fence[y - 1][x - 1] = tile_id
 
         # Step C: gate carving (up to 4 gates, 2-tile-wide openings flanked
-        # by "border" fence-cap tiles). `_tile_at` takes 1-based tile
-        # (x, y) grid coordinates, same convention as every Tile's own
-        # .x/.y, and returns the Tile so its .id can be overwritten.
-        def _tile_at(tx: int, ty: int) -> Tile:
-            return self.fence_layer.tiles[ty - 1][tx - 1]
+        # by "border" fence-cap tiles). `_set_fence` takes 1-based tile
+        # (x, y) grid coordinates, same convention every other step here
+        # uses, and overwrites that cell's gid in the fence layer.
+        def _set_fence(tx: int, ty: int, tile_id: int) -> None:
+            fence[ty - 1][tx - 1] = tile_id
 
         if self.gates["north"]:
             x = width // 2
-            _tile_at(x - 1, 1).id = TILE_IDS["border-left-fence"]
-            _tile_at(x, 1).id = TILE_IDS["empty"]
-            _tile_at(x + 1, 1).id = TILE_IDS["empty"]
-            _tile_at(x + 2, 1).id = TILE_IDS["border-right-fence"]
+            _set_fence(x - 1, 1, TILE_IDS["border-left-fence"])
+            _set_fence(x, 1, TILE_IDS["empty"])
+            _set_fence(x + 1, 1, TILE_IDS["empty"])
+            _set_fence(x + 2, 1, TILE_IDS["border-right-fence"])
 
         if self.gates["south"]:
             x = width // 2
-            _tile_at(x - 1, height).id = TILE_IDS["border-left-fence"]
-            _tile_at(x, height).id = TILE_IDS["empty"]
-            _tile_at(x + 1, height).id = TILE_IDS["empty"]
-            _tile_at(x + 2, height).id = TILE_IDS["border-right-fence"]
+            _set_fence(x - 1, height, TILE_IDS["border-left-fence"])
+            _set_fence(x, height, TILE_IDS["empty"])
+            _set_fence(x + 1, height, TILE_IDS["empty"])
+            _set_fence(x + 2, height, TILE_IDS["border-right-fence"])
 
         if self.gates["west"]:
             y = height // 2
-            _tile_at(1, y - 1).id = TILE_IDS["border-bottom-left-fence"]
-            _tile_at(1, y).id = TILE_IDS["empty"]
-            _tile_at(1, y + 1).id = TILE_IDS["empty"]
-            _tile_at(1, y + 2).id = TILE_IDS["border-top-left-fence"]
+            _set_fence(1, y - 1, TILE_IDS["border-bottom-left-fence"])
+            _set_fence(1, y, TILE_IDS["empty"])
+            _set_fence(1, y + 1, TILE_IDS["empty"])
+            _set_fence(1, y + 2, TILE_IDS["border-top-left-fence"])
 
         if self.gates["east"]:
             y = height // 2
-            _tile_at(width, y - 1).id = TILE_IDS["border-bottom-right-fence"]
-            _tile_at(width, y).id = TILE_IDS["empty"]
-            _tile_at(width, y + 1).id = TILE_IDS["empty"]
-            _tile_at(width, y + 2).id = TILE_IDS["border-top-right-fence"]
+            _set_fence(width, y - 1, TILE_IDS["border-bottom-right-fence"])
+            _set_fence(width, y, TILE_IDS["empty"])
+            _set_fence(width, y + 1, TILE_IDS["empty"])
+            _set_fence(width, y + 2, TILE_IDS["border-top-right-fence"])
 
         # Step D: grass/flowers/NPC decoration layer.
+        grass = self.tilemap.add_layer("grass")
         for y in range(1, height + 1):
-            row = []
             for x in range(1, width + 1):
                 if y == 1 or y == height or x == 1 or x == width:
                     tile_id = TILE_IDS["empty"]
@@ -150,8 +162,7 @@ class Region:
                     else:
                         tile_id = TILE_IDS["empty"]
 
-                row.append(Tile(x, y, tile_id))
-            self.grass_layer.tiles.append(row)
+                grass[y - 1][x - 1] = tile_id
 
     def _create_npc(self, x: int, y: int) -> None:
         width, height = self.tile_width, self.tile_height
@@ -167,7 +178,7 @@ class Region:
 
         gender = "male" if random.random() < 0.5 else "female"
 
-        names = ENTITY_DEFS["npcs"][gender]["names"]
+        names = self._available_npc_names[gender]
         name = names.pop(random.randrange(len(names)))
 
         npc = NPC(
@@ -192,9 +203,7 @@ class Region:
         pass
 
     def render(self, surface: pygame.Surface) -> None:
-        self.base_layer.render(surface)
-        self.fence_layer.render(surface)
-        self.grass_layer.render(surface)
+        self.tilemap.render(surface)
 
         for npc in self.npcs:
             npc.render(surface)

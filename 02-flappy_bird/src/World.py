@@ -33,7 +33,7 @@ class World:
         self.logs_spawn_timer: float = 0.0
         self.power_up_spawn_timer: float = 0.0
         self.power_up: PowerUp = None
-        self.last_log_y: float = -settings.LOG_HEIGHT + random.randint(0, 80) + 20
+        self.last_log_y: float = settings.MIN_LOG_Y + random.randint(0, 80) + 20
         self.log_pair_factory: Factory = Factory(LogPair)
         self.din_log_pair_factory: Factory = Factory(DynLogPair)
         self.power_up_factory: Factory = Factory(PowerUp)
@@ -62,9 +62,8 @@ class World:
             if self.logs_spawn_timer >= mode.log_spawn_time():
                 self.logs_spawn_timer = 0.0
                 y = max(
-                    -settings.LOG_HEIGHT + 10,
-                    min(mode.next_log_y(self.last_log_y),
-                        settings.VIRTUAL_HEIGHT - settings.LOGS_GAP - settings.LOG_HEIGHT - 20,),
+                    settings.MIN_LOG_Y,
+                    min(mode.next_log_y(self.last_log_y), settings.MAX_LOG_Y),
                 )
                 self.last_log_y = y
                 if mode.should_appear_log_pair():

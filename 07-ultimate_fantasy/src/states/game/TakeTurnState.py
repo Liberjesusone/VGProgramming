@@ -257,11 +257,36 @@ class TakeTurnState(BaseState):
         if self.battle_state.final_boss:
 
             def on_complete() -> None:
-                settings.SOUNDS["the-end"].play()
                 # Pops this lingering TakeTurnState, then the BattleState
-                # underneath it (matches the original's "pop twice").
+                # underneath it (matches the original's "pop twice"). The
+                # second pop runs BattleState.exit(), which always calls
+                # the on_exit it was pushed with (see
+                # PartyWalkState._trigger_encounter) -- for a NORMAL battle
+                # that's the whole point (it un-pauses the overworld's
+                # "world"/"town" music the encounter had merely paused,
+                # not stopped, so walking around resumes right where the
+                # music left off), but here there's no overworld to return
+                # to: the very next thing on screen is TheEndState. Without
+                # silencing what that on_exit just resumed, it played
+                # underneath "the-end" for the rest of the game -- the two
+                # overlapping tracks this whole fix is about. _victory
+                # already stopped "battle" and _fade_out already stopped
+                # the "victory" jingle, so this only has the resumed
+                # overworld music left to clean up, but stopping "battle"
+                # again too is harmless and keeps this correct even if
+                # that ordering ever changes.
                 self.state_machine.pop()
                 self.state_machine.pop()
+                settings.stop_music("battle")
+                settings.stop_music("world")
+                settings.stop_music("town")
+                # A bare SOUNDS["the-end"].play() (the original code here)
+                # starts a plain, untracked Sound channel -- unlike every
+                # other music cue in this game, it was never routed
+                # through play_music, so nothing could stop it the same
+                # way the stops above stop everything else (see
+                # TheEndState's restart handler).
+                settings.play_music("the-end")
 
                 from src.states.game.TheEndState import TheEndState
 

@@ -16,6 +16,7 @@ import pygame
 
 from gale import frames
 from gale import input_handler
+from gale import tilemap
 
 input_handler.InputHandler.set_keyboard_action(input_handler.KEY_ESCAPE, "quit")
 input_handler.InputHandler.set_keyboard_action(input_handler.KEY_LEFT, "move_left")
@@ -26,14 +27,21 @@ input_handler.InputHandler.set_keyboard_action(input_handler.KEY_SPACE, "space")
 input_handler.InputHandler.set_keyboard_action(input_handler.KEY_RETURN, "enter")
 input_handler.InputHandler.set_keyboard_action(input_handler.KEY_KP_ENTER, "enter")
 input_handler.InputHandler.set_keyboard_action(input_handler.KEY_p, "pause")
-input_handler.InputHandler.set_keyboard_action(input_handler.KEY_c, "continue")
 
 TITLE = "Ultimate Fantasy"
 
-# gale.save.SaveManager slot used for this game's single save file.
-SAVE_SLOT = "slot1"
+# gale.save.SaveManager slot names available for this game's 3 save slots
+# (StartState/PauseMenuState's "Load game", PauseMenuState's "Save
+# game" -- see SlotSelectState).
+SAVE_SLOTS = ["slot1", "slot2", "slot3"]
 
 BASE_DIR = pathlib.Path(__file__).parent
+
+# Absolute, so saves always land next to this game regardless of the
+# working directory the game happens to be launched from -- gale.save's
+# own default ("saves") is a relative path resolved against the
+# process's cwd, not this file's location.
+SAVE_DIR = BASE_DIR / "saves"
 
 VIRTUAL_WIDTH = 384
 VIRTUAL_HEIGHT = 224
@@ -121,8 +129,13 @@ TEXTURES = {
     ),
 }
 
+# Shared by every gale.tilemap.TileMap in the game (world regions and
+# battle backgrounds alike): tile ids in TILE_IDS above are 1-based,
+# matching this tileset's default first_gid, so they double as gids
+# with no remapping.
+TILESET = tilemap.Tileset(TEXTURES["tiles"], TILE_SIZE, TILE_SIZE)
+
 FRAMES = {
-    "tiles": frames.generate_frames(TEXTURES["tiles"], 16, 16),
     "healer-female": frames.generate_frames(TEXTURES["healer-female"], 16, 18),
     "healer-male": frames.generate_frames(TEXTURES["healer-male"], 16, 18),
     "mage-female": frames.generate_frames(TEXTURES["mage-female"], 16, 18),

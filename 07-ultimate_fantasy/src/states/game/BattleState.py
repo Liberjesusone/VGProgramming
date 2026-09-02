@@ -20,6 +20,7 @@ from typing import Any, Callable, Optional
 import pygame
 
 from gale.state import BaseState, StateMachine
+from gale.tilemap import TileMap
 
 import settings
 from src.definitions.entity import (
@@ -32,8 +33,6 @@ from src.definitions.entity import (
 from src.entity.Enemy import Enemy
 from src.gui.Panel import Panel
 from src.states.entity.EnemyBattleState import EnemyBattleState
-from src.world.Tile import Tile
-from src.world.TileMap import TileMap
 
 TILE_IDS = settings.TILE_IDS
 
@@ -46,9 +45,10 @@ class BattleState(BaseState):
         self.final_boss = False
         self.battle_started = False
 
-        offset = (BATTLE_PADDLE["x"], BATTLE_PADDLE["y"])
-        self.base_layer = TileMap(BATTLE_WIDTH, BATTLE_HEIGHT, offset=offset)
-        self.grass_layer = TileMap(BATTLE_WIDTH, BATTLE_HEIGHT, offset=offset)
+        self.tilemap = TileMap(
+            settings.TILE_SIZE, settings.TILE_SIZE, BATTLE_WIDTH, BATTLE_HEIGHT
+        )
+        self.tilemap.add_tileset(settings.TILESET)
         self._create_map()
 
         self.party.set_battle_positions()
@@ -65,18 +65,16 @@ class BattleState(BaseState):
         self.on_exit()
 
     def _create_map(self) -> None:
+        base = self.tilemap.add_layer("base")
         for y in range(1, BATTLE_HEIGHT + 1):
-            row = []
             for x in range(1, BATTLE_WIDTH + 1):
-                row.append(Tile(x, y, random.choice(TILE_IDS["grass"])))
-            self.base_layer.tiles.append(row)
+                base[y - 1][x - 1] = random.choice(TILE_IDS["grass"])
 
+        grass = self.tilemap.add_layer("grass")
         for y in range(1, BATTLE_HEIGHT + 1):
-            row = []
             for x in range(1, BATTLE_WIDTH + 1):
                 tile_id = TILE_IDS["tall-grass"] if random.random() < 0.3 else TILE_IDS["empty"]
-                row.append(Tile(x, y, tile_id))
-            self.grass_layer.tiles.append(row)
+                grass[y - 1][x - 1] = tile_id
 
     def _create_enemies(self) -> None:
         region_enemies = ENTITY_DEFS["enemies"][self.region]
@@ -204,8 +202,19 @@ class BattleState(BaseState):
         )
 
     def render(self, surface: pygame.Surface) -> None:
-        self.base_layer.render(surface)
-        self.grass_layer.render(surface)
+        # gale.tilemap.TileMap has no built-in pixel offset (unlike this
+        # game's old bespoke TileMap), so the same BATTLE_PADDLE shift is
+        # reproduced with a subsurface instead -- pixel-for-pixel identical
+        # to the previous (x - 1 + offset_x) * TILE_SIZE math.
+        battle_area = surface.subsurface(
+            pygame.Rect(
+                BATTLE_PADDLE["x"] * settings.TILE_SIZE,
+                BATTLE_PADDLE["y"] * settings.TILE_SIZE,
+                BATTLE_WIDTH * settings.TILE_SIZE,
+                BATTLE_HEIGHT * settings.TILE_SIZE,
+            )
+        )
+        self.tilemap.render(battle_area)
 
         for enemy in self.enemies:
             if not enemy.dead:
