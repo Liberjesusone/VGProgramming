@@ -9,7 +9,7 @@ This file contains the class GameLevel.
 """
 
 import random
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 import pygame
 
@@ -55,11 +55,17 @@ class GameLevel:
 
         self._schedule_flying_creature_spawn()
 
-    def add_item(self, item_data: Dict[str, Any]) -> None:
+    def add_item(self, item_data: Dict[str, Any]) -> GameItem:
         item_name = item_data.pop("item_name")
-        definition = items.ITEMS[item_name][item_data["frame_index"]]
-        definition.update(item_data)
-        self.items.append(GameItem(**definition))
+        # Merged into a fresh dict instead of definition.update(item_data):
+        # ITEMS holds one shared template per item type, and updating it in
+        # place writes this instance's x/y/width/height straight into the
+        # module-level dict, leaving stale coordinates behind for whoever
+        # builds that item type next.
+        definition = {**items.ITEMS[item_name][item_data["frame_index"]], **item_data}
+        item = GameItem(**definition)
+        self.items.append(item)
+        return item
 
     def add_creature(self, creature_data: Dict[str, Any]) -> None:
         definition = creatures.CREATURES[creature_data["tile_index"]]
@@ -121,6 +127,32 @@ class GameLevel:
             )
 
         self._schedule_flying_creature_spawn()
+
+    def get_player_spawn(self, player_height: int) -> Tuple[float, float]:
+        """Where the player starts: standing on the lowest solid tile of
+        the leftmost column. Derived from the map instead of a fixed row,
+        so a level can be laid out horizontally (level 1, ground near the
+        top rows) or as a vertical climb (level 2, ground 70+ rows down)
+        without either one needing a special case.
+
+        The y lands the player exactly on the tile's surface rather than a
+        few pixels into it: gale's one-way platform collision only blocks
+        an entity already at or above the surface, so spawning even
+        slightly inside makes it fall straight through on frame one.
+        """
+        ground_row = None
+
+        for row in range(self.tilemap.rows):
+            if (
+                collision_type_at(self.tilemap, GameEntity.COLLISION_LAYER, row, 0)
+                != CollisionType.NONE
+            ):
+                ground_row = row
+
+        if ground_row is None:
+            ground_row = self.tilemap.rows - 1
+
+        return 0, ground_row * self.tilemap.tile_height - player_height
 
     def get_rect(self) -> pygame.Rect:
         return pygame.Rect(0, 0, self.tilemap.pixel_width, self.tilemap.pixel_height)

@@ -45,6 +45,18 @@ def pickup_yellow_coin(coin: GameItem, player: Player):
     pickup_coin(coin, player, 50, 54, random.uniform(20, 25))
 
 
+
+def pickup_key(key: GameItem, player: Player) -> None:
+    """Picking the key up does not end the level by itself: it only
+    raises a flag on the player. PlayState watches that flag and runs
+    the whole completion sequence (freeze the clock, stop coin pickups,
+    play the jingle, fade out). Same shape as the coins, which only
+    touch player.score and let PlayState react."""
+    settings.SOUNDS["pickup_key"].stop()
+    settings.SOUNDS["pickup_key"].play()
+    player.has_key = True
+
+
 ITEMS: Dict[str, Dict[int, Dict[str, Any]]] = {
     "coins": {
         62: {
@@ -71,5 +83,15 @@ ITEMS: Dict[str, Dict[int, Dict[str, Any]]] = {
             "collidable": True,
             "on_consume": pickup_yellow_coin,
         },
-    }
+    },
+    "key": {
+        # Keyed by frame_index (0-based index into FRAMES["tiles"]), the
+        # same way the coins are, NOT by tilemap gid, which is 1-based.
+        settings.KEY_FRAME_INDEX: {
+            "texture_id": "tiles",
+            "consumable": True,
+            "collidable": True,
+            "on_consume": pickup_key,
+        },
+    },
 }

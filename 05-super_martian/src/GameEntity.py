@@ -45,6 +45,7 @@ class GameEntity(mixins.DrawableMixin, mixins.AnimatedMixin, mixins.CollidableMi
         self.game_level = game_level
         self.tilemap = self.game_level.tilemap
         self.on_ground = False
+        self.hit_ceiling = False
         self.collided_x = False
         self.state_machine = StateMachine(states)
         self.current_animation = None
@@ -79,11 +80,17 @@ class GameEntity(mixins.DrawableMixin, mixins.AnimatedMixin, mixins.CollidableMi
         )
 
         if collided_y:
-            if self.vy > 0:
-                self.on_ground = True
+            """ Both flags are re-derived every frame from the sign of vy
+            *before* it gets zeroed below, that sign is the only
+            thing that says whether we landed on something or banged
+            our head into it, and it is gone one line later.
+            """
+            self.on_ground = self.vy > 0
+            self.hit_ceiling = self.vy < 0
             self.vy = 0
         else:
             self.on_ground = False
+            self.hit_ceiling = False
 
         # Keep the entity from walking off either edge of the world.
         if self.x < 0:

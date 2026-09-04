@@ -45,6 +45,7 @@ class StartState(BaseState):
             settings.BASE_DIR / "assets" / "sounds" / "music_intro.ogg"
         )
         pygame.mixer.music.play()
+        pygame.mixer.music.set_volume(settings.MUSIC_VOLUME)
         Timer.tween(
             5,
             [
