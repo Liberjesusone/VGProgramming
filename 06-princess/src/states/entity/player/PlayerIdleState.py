@@ -14,6 +14,9 @@ import pygame
 
 from gale.state import StateMachine
 
+import settings
+from src.definitions.game_objects import create_arrow
+from src.Projectile import Projectile
 from src.states.entity.BaseEntityState import BaseEntityState
 
 
@@ -45,6 +48,20 @@ class PlayerIdleState(BaseEntityState):
 
             if self.entity.state_machine.current is not self:
                 return
+
+        if self.entity.fire_requested:
+            self.entity.fire_requested = False
+
+            if self.entity.has_bow:
+                player = self.entity
+                arrow = create_arrow(
+                    player.x + player.width / 2 - 8,
+                    player.y + player.height / 2 - 8,
+                    player.direction,
+                )
+                self.dungeon.current_room.projectiles.append(
+                    Projectile(arrow, player.direction, damage=settings.ARROW_DAMAGE)
+                )
 
         held = self.entity.held
 

@@ -18,11 +18,13 @@ from gale.tilemap import TileMap
 import settings
 from src.definitions.entity import ENTITY_DEFS
 from src.definitions.game_objects import GAME_OBJECT_DEFS
+from src.Boss import Boss
 from src.Entity import Entity
 from src.GameObject import GameObject
 from src.states.entity.EntityIdleState import EntityIdleState
 from src.states.entity.EntityWalkState import EntityWalkState
 from src.world.Doorway import Doorway
+from src.Player import Player
 
 _ENEMY_TYPES = ["skeleton", "slime", "bat", "ghost", "spider"]
 
@@ -84,10 +86,31 @@ class Room:
         self,
         player: TypeVar("Player"),
         on_game_over: Callable[[], None],
+        dungeon: TypeVar("Dungeon") = None,
+        is_boss: bool = False,
+        entry_direction: Optional[str] = None,
     ) -> None:
         # Reference to player for collisions, etc.
-        self.player = player
+        self.player: Player = player
         self.on_game_over = on_game_over
+
+        # Back-reference so _generate_objects can read/set
+        # dungeon.chest_appeared without going through the player's
+        # current state. None only for a Room built standalone outside a
+        # Dungeon (e.g. in a test), which then simply never spawns a chest.
+        self.dungeon = dungeon
+
+        # A boss room is the fire mage and nothing else: no wandering
+        # enemies, no pots, no switch. Rolled for in Dungeon.begin_shifting.
+        self.is_boss = is_boss
+
+        # Which of this room's own doorways the player walks in through,
+        # i.e. "left" when they came from the room to the west. Used to
+        # put the mage at the far side of it, and to leave that one door
+        # open. None for the very first room, which is never a boss room.
+        self.entry_direction = entry_direction
+        self.boss: Optional[Boss] = None
+        self.boss_defeated = False
 
         self.width = settings.MAP_WIDTH
         self.height = settings.MAP_HEIGHT
@@ -97,10 +120,13 @@ class Room:
         self._generate_walls_and_floors()
 
         self.entities: List[Entity] = []
-        self._generate_entities()
-
         self.objects: List[GameObject] = []
-        self._generate_objects()
+
+        if is_boss:
+            self._generate_boss()
+        else:
+            self._generate_entities()
+            self._generate_objects()
 
         # Doorways that lead to other dungeon rooms.
         self.doorways = [
@@ -143,6 +169,9 @@ class Room:
 
                 # Whether the entity dropped or not, it is assumed that it did.
                 entity.dropped = True
+
+                if entity is self.boss:
+                    self._on_boss_defeated()
             elif not entity.dead:
                 entity.process_ai(self, dt)
                 entity.update(dt)
@@ -154,10 +183,14 @@ class Room:
                 and not self.player.invulnerable
             ):
                 settings.SOUNDS["hit-player"].play()
-                self.player.damage(1)
+                self.player.damage(entity.contact_damage)
                 self.player.go_invulnerable(1.5)
 
-                if self.player.health == 0:
+                # <= 0, not == 0: the mage takes off two health at a time
+                # (Entity.contact_damage), so mixing his hits with a
+                # regular enemy's single point can step straight past zero
+                # to -1 and, on an == check, never end the run at all.
+                if self.player.health <= 0:
                     self.on_game_over()
 
         self.entities = [entity for entity in self.entities if not entity.dead]
@@ -165,6 +198,7 @@ class Room:
         for obj in list(self.objects):
             obj.update(dt)
 
+            # Colision between the player and the GameObjects
             if self.player.collides(obj):
                 obj.on_collide()
 
@@ -178,14 +212,39 @@ class Room:
         for projectile in list(self.projectiles):
             projectile.update(dt)
 
-            for entity in self.entities:
-                if projectile.dead:
-                    break
-
-                if not entity.dead and projectile.collides(entity):
-                    entity.damage(1)
-                    settings.SOUNDS["hit-enemy"].play()
+            # Each projectile is only ever checked against the other side,
+            # which is what makes the fire mage immune to his own fire --
+            # and the player immune to their own arrows -- without a
+            # single "whose is this?" test anywhere in here.
+            if projectile.owner == "boss":
+                if not projectile.dead and projectile.collides(self.player):
+                    settings.SOUNDS["hit-player"].play()
                     projectile.dead = True
+
+                    # A fireball does not chip away at hearts: catching
+                    # one ends the run outright.
+                    self.player.health = 0
+                    self.on_game_over()
+            else:
+                for entity in self.entities:
+                    if projectile.dead:
+                        break
+
+                    if not entity.dead and projectile.collides(entity):
+                        entity.damage(projectile.damage)
+                        settings.SOUNDS["hit-enemy"].play()
+
+                        # Arrows and thrown pots stagger the mage. stun()
+                        # decides for itself whether enough time has
+                        # passed since the last one, so a hit inside the
+                        # cooldown still lands its damage -- it just does
+                        # not stagger him again.
+                        stun = getattr(entity, "stun", None)
+
+                        if stun is not None:
+                            stun()
+
+                        projectile.dead = True
 
             if projectile.dead:
                 self.projectiles.remove(projectile)
@@ -225,8 +284,12 @@ class Room:
     def take_adjacent_pot(self, player: TypeVar("Player")) -> None:
         """
         Looks for a takeable object directly in front of the player (one
-        tile away, in the direction they're currently facing) and, if
-        found, removes it from the room and has the player lift it.
+        tile away, in the direction they're currently facing). A pot gets
+        removed from the room and lifted; the chest (also "takeable", so
+        this same proximity scan finds it) opens in place instead and
+        grants the bow, see the "chest" entry in
+        definitions/game_objects.py for why it isn't wired through
+        on_consume like the heart is.
         """
         player_y = player.y + player.height / 2
         player_height = player.height - player.height / 2
@@ -248,6 +311,15 @@ class Room:
             )
 
             if adjacent:
+                if obj.type == "chest":
+                    if obj.state == "opened":
+                        continue  # nothing left to give; keep scanning
+
+                    obj.state = "opened"
+                    player.has_bow = True
+                    settings.SOUNDS["heart-taken"].play()
+                    return
+
                 self.objects.remove(obj)
                 player.change_state("pot-lift", pot=obj)
                 return
@@ -315,8 +387,74 @@ class Room:
             entity.change_state("walk")
             self.entities.append(entity)
 
+    def _generate_boss(self) -> None:
+        """Drops the mage at the far side of the room from the door the
+        player is about to walk in through, so the fight opens with the
+        whole room between them instead of him standing on top of them."""
+        interior_width = settings.MAP_WIDTH * settings.TILE_SIZE
+        interior_height = settings.MAP_HEIGHT * settings.TILE_SIZE
+
+        centre_x = (
+            settings.MAP_RENDER_OFFSET_X + (interior_width - settings.BOSS_WIDTH) / 2
+        )
+        centre_y = (
+            settings.MAP_RENDER_OFFSET_Y + (interior_height - settings.BOSS_HEIGHT) / 2
+        )
+
+        left = settings.MAP_RENDER_OFFSET_X + settings.TILE_SIZE
+        right = settings.VIRTUAL_WIDTH - settings.TILE_SIZE * 2 - settings.BOSS_WIDTH
+        top = settings.MAP_RENDER_OFFSET_Y + settings.TILE_SIZE
+        bottom = (
+            interior_height
+            + settings.MAP_RENDER_OFFSET_Y
+            - settings.TILE_SIZE
+            - settings.BOSS_HEIGHT
+        )
+
+        # Not flush against the far wall: a couple of tiles clear of it, so
+        # he has somewhere to back into and does not start the fight
+        # already pinned by his own boundary clamp.
+        margin = settings.TILE_SIZE * 2
+
+        if self.entry_direction == "left":
+            x, y = right - margin, centre_y
+        elif self.entry_direction == "right":
+            x, y = left + margin, centre_y
+        elif self.entry_direction == "top":
+            x, y = centre_x, bottom - margin
+        elif self.entry_direction == "bottom":
+            x, y = centre_x, top + margin
+        else:
+            x, y = centre_x, centre_y
+
+        self.boss = Boss(x, y)
+        self.entities.append(self.boss)
+
+    def _on_boss_defeated(self) -> None:
+        """The mage is down, and that is where the run ends: there is no
+        dungeon content past him, so beating him goes to the same end
+        screen dying does -- through the very callback PlayState handed
+        the Dungeon, which is why nothing new had to be wired up for it.
+        The doors he locked are left shut on purpose: they lead nowhere
+        that still matters."""
+        if self.boss_defeated:
+            return
+
+        self.boss_defeated = True
+
+        settings.SOUNDS["door"].play()
+        self.on_game_over()
+
+    def doorway_for(self, direction: str) -> Doorway:
+        """One of this room's four doorways by name. Only the dungeon uses
+        it, to reopen the door the player came in by after the transition
+        has closed every door in the new room."""
+        return self._doorways_by_direction[direction]
+
     def _generate_objects(self) -> None:
         """Randomly creates an assortment of obstacles for the player to navigate around."""
+        self._maybe_spawn_chest()
+
         switch = GameObject(
             GAME_OBJECT_DEFS["switch"],
             random.randint(
@@ -350,6 +488,37 @@ class Room:
                     self.objects.append(
                         GameObject(GAME_OBJECT_DEFS["pot"], x * 16, y * 16)
                     )
+
+    def _maybe_spawn_chest(self) -> None:
+        """One in three rooms gets a chance to spawn the chest, until one
+        actually does -- self.dungeon.chest_appeared then stops every
+        later room, including this same one on a future visit, from
+        ever rolling for it again."""
+        if self.dungeon is None or self.dungeon.chest_appeared:
+            return
+
+        if random.randint(1, 3) != 1:
+            return
+
+        # Same bounding box the switch above uses: a safe interior area,
+        # clear of the outer wall ring.
+        self.objects.append(
+            GameObject(
+                GAME_OBJECT_DEFS["chest"],
+                random.randint(
+                    settings.MAP_RENDER_OFFSET_X + settings.TILE_SIZE,
+                    settings.VIRTUAL_WIDTH - settings.TILE_SIZE * 2 - 16,
+                ),
+                random.randint(
+                    settings.MAP_RENDER_OFFSET_Y + settings.TILE_SIZE,
+                    settings.MAP_HEIGHT * settings.TILE_SIZE
+                    + settings.MAP_RENDER_OFFSET_Y
+                    - settings.TILE_SIZE
+                    - 16,
+                ),
+            )
+        )
+        self.dungeon.chest_appeared = True
 
     def render(
         self,

@@ -164,6 +164,28 @@ ENTITY_DEFS: Dict[str, Dict[str, Any]] = {
             "idle-up": {"frames": [92]},
         },
     },
+    # The boss. Its sheet is the one settings._build_villain_sheet lays
+    # out: a 4x3 grid where column 1 faces down, 2 left, 3 up and 4 right,
+    # and the three rows are the walk cycle, so a frame number is
+    # (row - 1) * 4 + column, 1-based like every other frame list here.
+    # "texture" goes on every single animation, the way the player's
+    # entries do it, and NOT once at the top the way the enemies above
+    # appear to: Entity._create_animations reads it off each animation's
+    # own dict and falls back to "entities" when it is missing, so the
+    # entity-level key those enemies carry is in fact dead, they only
+    # work because "entities" is the fallback anyway.
+    "villain": {
+        "animations": {
+            "walk-down": {"frames": [1, 5, 9, 5], "interval": 0.18, "texture": "villain"},
+            "walk-left": {"frames": [2, 6, 10, 6], "interval": 0.18, "texture": "villain"},
+            "walk-up": {"frames": [3, 7, 11, 7], "interval": 0.18, "texture": "villain"},
+            "walk-right": {"frames": [4, 8, 12, 8], "interval": 0.18, "texture": "villain"},
+            "idle-down": {"frames": [1], "texture": "villain"},
+            "idle-left": {"frames": [2], "texture": "villain"},
+            "idle-up": {"frames": [3], "texture": "villain"},
+            "idle-right": {"frames": [4], "texture": "villain"},
+        },
+    },
     "spider": {
         "texture": "entities",
         "animations": {

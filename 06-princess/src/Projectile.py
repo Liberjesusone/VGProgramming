@@ -19,11 +19,36 @@ _MAX_TILES = 4
 
 
 class Projectile:
-    def __init__(self, obj: Any, direction: str) -> None:
+    def __init__(
+        self,
+        obj: Any,
+        direction: str,
+        speed: float = _SPEED,
+        max_tiles: float = _MAX_TILES,
+        damage: int = 1,
+        owner: str = "player",
+    ) -> None:
         self.obj = obj
         self.direction = direction
         self.distance = 0.0
         self.dead = False
+
+        # Speed and range used to be the module constants above, fixed for
+        # every projectile because the only one was a thrown pot. The
+        # mage's fireball is slower but has to cross the whole room, so
+        # both became per-projectile, with the pot's old values as the
+        # defaults, every existing `Projectile(obj, direction)` call
+        # keeps behaving exactly as it did.
+        self.speed = speed
+        self.max_tiles = max_tiles
+
+        self.damage = damage
+
+        # "player" (arrows, thrown pots) or "boss" (fireballs). Room.update
+        # checks a projectile only against the *other* side, which is what
+        # makes the fire mage immune to his own fire without a single
+        # special case anywhere in the collision code.
+        self.owner = owner
 
     def get_collision_rect(self) -> pygame.Rect:
         return self.obj.get_collision_rect()
@@ -32,7 +57,7 @@ class Projectile:
         if self.dead:
             return
 
-        d = _SPEED * dt
+        d = self.speed * dt
 
         if self.direction == "up":
             self.obj.y -= d
@@ -69,7 +94,7 @@ class Projectile:
 
         self.distance += d
 
-        if self.distance > _MAX_TILES * settings.TILE_SIZE:
+        if self.distance > self.max_tiles * settings.TILE_SIZE:
             self.dead = True
 
     def render(

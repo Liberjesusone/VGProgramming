@@ -9,6 +9,7 @@ This file contains the class Dungeon.
 """
 
 import math
+import random
 from typing import Callable, TypeVar
 
 import pygame
@@ -28,8 +29,16 @@ class Dungeon:
         self.player = player
         self.on_game_over = on_game_over
 
+        # Set once the chest has been placed in some room (regardless of
+        # whether the player has opened it yet), so no later room ever
+        # rolls to spawn a second one. Read directly as self.dungeon by
+        # Room, rather than through a chain like
+        # player.state_machine.current.dungeon, which only holds up for
+        # whichever player state happens to be active when it's checked.
+        self.chest_appeared = False
+
         # Current room we're operating in.
-        self.current_room = Room(self.player, self.on_game_over)
+        self.current_room = Room(self.player, self.on_game_over, dungeon=self)
 
         # Room we're moving the camera to during a shift; becomes the
         # active room afterwards.
@@ -47,7 +56,34 @@ class Dungeon:
         PlayerWalkState/PlayerPotWalkState.
         """
         self.shifting = True
-        self.next_room = Room(self.player, self.on_game_over)
+
+        # Every room transition in the game funnels through here -- both
+        # PlayerWalkState._check_doorways and PlayerPotWalkState's copy of
+        # it call this and nothing else -- so this is the one place the
+        # boss room has to be rolled for, instead of the same roll and the
+        # same flag written twice over in the two walk states. shift_x and
+        # shift_y already say which of the new room's doors the player
+        # will step out of, so there is nothing extra to thread through
+        # either.
+        entry_direction = self._entry_direction_for(shift_x, shift_y)
+
+        # Gated on the bow, and not only on the roll: the mage is the one
+        # fight in the dungeon that is not meant to be won on the sword
+        # alone -- arrows are what stagger him (Boss.stun) -- so sending a
+        # player who has not found the chest yet into a room that locks
+        # its doors behind them would just be a dead end. The chest is
+        # itself only ever placed in a regular room, since a boss room
+        # skips _generate_objects entirely, so the two can never deadlock
+        # each other.
+        is_boss = self.player.has_bow and random.random() < settings.BOSS_ROOM_CHANCE
+
+        self.next_room = Room(
+            self.player,
+            self.on_game_over,
+            dungeon=self,
+            is_boss=is_boss,
+            entry_direction=entry_direction,
+        )
 
         # Start all doors in next room as open until we get in.
         for doorway in self.next_room.doorways:
@@ -95,6 +131,25 @@ class Dungeon:
 
         Timer.tween(1, to_tween, on_finish=self._finish_shifting_and_place_player)
 
+    @staticmethod
+    def _entry_direction_for(shift_x: float, shift_y: float) -> str:
+        """
+        :returns: The doorway of the room being entered that the player
+            comes out of. Walking right, into the room to the east, drops
+            them at that room's *left* door, and so on -- the mirror of
+            the direction they were travelling in.
+        """
+        if shift_x > 0:
+            return "left"
+
+        if shift_x < 0:
+            return "right"
+
+        if shift_y > 0:
+            return "top"
+
+        return "bottom"
+
     def _finish_shifting_and_place_player(self) -> None:
         shift_x = self.camera_x
         shift_y = self.camera_y
@@ -131,6 +186,15 @@ class Dungeon:
         # wall opening during the transition.
         for doorway in self.current_room.doorways:
             doorway.open = False
+
+        # ...except, in the mage's room, the one the player just came
+        # through: the fight is a room the player is locked into, but
+        # never a trap, since the way back out is the way they came in.
+        # The other three stay shut for good -- putting him down ends the
+        # run outright (Room._on_boss_defeated), so there is nothing left
+        # behind them worth opening them for.
+        if self.current_room.is_boss:
+            self.current_room.doorway_for(self.current_room.entry_direction).open = True
 
         # Avoid receiving damage right as we enter the new room.
         self.player.go_invulnerable(1)

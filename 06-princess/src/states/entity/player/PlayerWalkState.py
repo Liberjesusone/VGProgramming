@@ -15,6 +15,8 @@ import pygame
 from gale.state import StateMachine
 
 import settings
+from src.definitions.game_objects import create_arrow
+from src.Projectile import Projectile
 from src.states.entity.BaseEntityState import BaseEntityState
 from src.states.entity.movement import move_and_bump
 
@@ -48,6 +50,19 @@ class PlayerWalkState(BaseEntityState):
 
             if player.state_machine.current is not self:
                 return
+
+        if player.fire_requested:
+            player.fire_requested = False
+
+            if player.has_bow:
+                arrow = create_arrow(
+                    player.x + player.width / 2 - 8,
+                    player.y + player.height / 2 - 8,
+                    player.direction,
+                )
+                self.dungeon.current_room.projectiles.append(
+                    Projectile(arrow, player.direction, damage=settings.ARROW_DAMAGE)
+                )
 
         held = player.held
 

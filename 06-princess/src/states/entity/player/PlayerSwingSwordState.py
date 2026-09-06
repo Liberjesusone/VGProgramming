@@ -8,7 +8,7 @@ alejandro.j.mujic4@gmail.com
 This file contains the class PlayerSwingSwordState.
 """
 
-from typing import TypeVar
+from typing import List, TypeVar
 
 import pygame
 
@@ -53,6 +53,15 @@ class PlayerSwingSwordState(BaseEntityState):
             y = self.entity.y + self.entity.height
 
         self.sword_hitbox = pygame.Rect(round(x), round(y), width, height)
+
+        # One hit per entity per swing. update() below runs for every
+        # frame the swing animation is on screen, roughly a dozen of
+        # them, and without this it re-applied the damage on every last
+        # one. That went unnoticed while every enemy in the game had a
+        # single point of health and died on the first frame regardless;
+        # against the boss's 80 it turned one swing into sixty damage.
+        self.hit_entities: List[TypeVar("Entity")] = []
+
         self.entity.change_animation(f"sword-{direction}")
 
     def enter(self) -> None:
@@ -71,8 +80,12 @@ class PlayerSwingSwordState(BaseEntityState):
             return
 
         for entity in self.dungeon.current_room.entities:
+            if entity in self.hit_entities:
+                continue
+
             if entity.collides(self.sword_hitbox):
-                entity.damage(1)
+                self.hit_entities.append(entity)
+                entity.damage(settings.SWORD_DAMAGE)
                 settings.SOUNDS["hit-enemy"].play()
 
         if self.entity.current_animation.times_played > 0:

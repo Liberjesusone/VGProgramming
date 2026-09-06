@@ -57,6 +57,11 @@ class Entity:
         self.walk_speed = walk_speed
         self.health = health
 
+        # How much health this entity takes off the player on body
+        # contact (see Room.update). Every regular enemy leaves it at
+        # half a heart; the boss raises it to a whole one.
+        self.contact_damage = 1
+
         # Flags for flashing the entity when hit.
         self.invulnerable = False
         self.invulnerable_duration = 0.0
