@@ -36,6 +36,10 @@ from src.states.entity.EnemyBattleState import EnemyBattleState
 
 TILE_IDS = settings.TILE_IDS
 
+# Gold, so the rest bar reads apart from the red health bar and the blue
+# experience one stacked right above it.
+REST_BAR_COLOR = pygame.Color(232, 190, 60)
+
 
 class BattleState(BaseState):
     def enter(self, party: Any, region: str, on_exit: Callable[[], None]) -> None:
@@ -97,6 +101,7 @@ class BattleState(BaseState):
                     "texture": enemy_def["texture"],
                     "class": enemy_def["type"],
                     "level": enemy_def["level"],
+                    "rest_time": enemy_def["rest_time"],
                     "baseHP": enemy_def["baseHP"],
                     "baseAttack": enemy_def["baseAttack"],
                     "baseDefense": enemy_def["baseDefense"],
@@ -117,6 +122,13 @@ class BattleState(BaseState):
             self.enemies.append(enemy)
 
     def _create_bars(self) -> None:
+        """
+        Three bars over a party member and two over an enemy, stacked
+        upward from the sprite: health, experience where there is any, and
+        the rest bar on the bottom. That last one is the whole turn order
+        made visible, since with rest times deciding who moves next the
+        player needs to see who is about to act.
+        """
         from gale.ui.progress_bar import ProgressBar
 
         from src.gui.theme import BAR_THEME
@@ -126,9 +138,11 @@ class BattleState(BaseState):
                 continue
 
             width = math.floor(character.width * 1.5)
+            bar_x = character.x - (width - character.width) / 2
+
             character.energy_bar = ProgressBar(
-                character.x - (width - character.width) / 2,
-                character.y - 10,
+                bar_x,
+                character.y - 14,
                 width,
                 3,
                 value=character.current_hp,
@@ -137,8 +151,8 @@ class BattleState(BaseState):
                 theme=BAR_THEME,
             )
             character.exp_bar = ProgressBar(
-                character.x - (width - character.width) / 2,
-                character.y - 6,
+                bar_x,
+                character.y - 10,
                 width,
                 3,
                 value=character.current_exp,
@@ -146,17 +160,39 @@ class BattleState(BaseState):
                 color=pygame.Color(32, 32, 189),
                 theme=BAR_THEME,
             )
+            character.rest_bar = ProgressBar(
+                bar_x,
+                character.y - 6,
+                width,
+                3,
+                value=character.rest_timer,
+                max_value=character.rest_time,
+                color=REST_BAR_COLOR,
+                theme=BAR_THEME,
+            )
 
         for enemy in self.enemies:
             width = math.floor(enemy.width * 1.5)
+            bar_x = enemy.x - (width - enemy.width) / 2
+
             enemy.energy_bar = ProgressBar(
-                enemy.x - (width - enemy.width) / 2,
+                bar_x,
                 enemy.y - 10,
                 width,
                 3,
                 value=enemy.current_hp,
                 max_value=enemy.hp,
                 color=pygame.Color(189, 32, 32),
+                theme=BAR_THEME,
+            )
+            enemy.rest_bar = ProgressBar(
+                bar_x,
+                enemy.y - 6,
+                width,
+                3,
+                value=enemy.rest_timer,
+                max_value=enemy.rest_time,
+                color=REST_BAR_COLOR,
                 theme=BAR_THEME,
             )
 
@@ -220,11 +256,13 @@ class BattleState(BaseState):
             if not enemy.dead:
                 enemy.render(surface)
                 enemy.energy_bar.render(surface)
+                enemy.rest_bar.render(surface)
 
         for character in self.party.characters.values():
             if not character.dead:
                 character.render(surface)
                 character.energy_bar.render(surface)
                 character.exp_bar.render(surface)
+                character.rest_bar.render(surface)
 
         self.bottom_panel.render(surface)

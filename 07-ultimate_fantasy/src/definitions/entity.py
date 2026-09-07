@@ -18,6 +18,18 @@ ENTITY_WIDTH = 16
 ENTITY_HEIGHT = 18
 NUM_CHARACTERS = 4
 
+# Seconds a battle entity needs to recover before it may act again (see
+# BattleEntity.rest and TakeTurnState). Whoever finishes resting first
+# takes the next turn, so a low number means a fast fighter: the ranger
+# is the quickest of the party, the mage the slowest, and the boss acts
+# roughly twice as often as anything else in the game.
+DEFAULT_REST_TIME = 3.0
+
+# How much of its rest an entity may already have done when the battle
+# opens, as a fraction of its own rest time. Randomising it spreads the
+# first few turns out instead of having the whole board act at once.
+REST_HEAD_START = 0.5
+
 BATTLE_WIDTH = 16
 BATTLE_HEIGHT = 8
 BATTLE_PADDLE = {"x": 4, "y": 1}
@@ -146,6 +158,7 @@ ENTITY_DEFS = {
     "characters": [
         {
             "type": "warrior",
+            "rest_time": 3.0,
             "female": {"name": "Celes", "texture": "warrior-female"},
             "male": {"name": "Squall", "texture": "warrior-male"},
             "level": 1,
@@ -170,6 +183,7 @@ ENTITY_DEFS = {
         },
         {
             "type": "ranger",
+            "rest_time": 2.4,
             "female": {"name": "Terra", "texture": "ranger-female"},
             "male": {"name": "Cloud", "texture": "ranger-male"},
             "level": 1,
@@ -202,6 +216,7 @@ ENTITY_DEFS = {
         },
         {
             "type": "healer",
+            "rest_time": 2.8,
             "female": {"name": "Tifa", "texture": "healer-female"},
             "male": {"name": "Kimahri", "texture": "healer-male"},
             "level": 1,
@@ -220,6 +235,7 @@ ENTITY_DEFS = {
                     "sound_effect": "powerup",
                     "strength": 5,
                     "require_target": True,
+                    "heals": True,
                     "func": _character_heal,
                 },
                 {
@@ -228,12 +244,14 @@ ENTITY_DEFS = {
                     "sound_effect": "powerup",
                     "strength": 8,
                     "require_target": False,
+                    "heals": True,
                     "func": _character_heal_aoe,
                 },
             ],
         },
         {
             "type": "mage",
+            "rest_time": 3.6,
             "female": {"name": "Rinoa", "texture": "mage-female"},
             "male": {"name": "Sephiroth", "texture": "mage-male"},
             "level": 1,
@@ -278,6 +296,7 @@ ENTITY_DEFS = {
             {
                 "level": 1,
                 "type": "slime",
+                "rest_time": 3.0,
                 "texture": "slime",
                 "width": 16,
                 "height": 16,
@@ -303,6 +322,7 @@ ENTITY_DEFS = {
             {
                 "level": 2,
                 "type": "worm",
+                "rest_time": 3.2,
                 "texture": "small-worm",
                 "width": 16,
                 "height": 16,
@@ -328,6 +348,7 @@ ENTITY_DEFS = {
             {
                 "level": 3,
                 "type": "snake",
+                "rest_time": 2.8,
                 "texture": "snake",
                 "width": 16,
                 "height": 16,
@@ -353,6 +374,7 @@ ENTITY_DEFS = {
             {
                 "level": 4,
                 "type": "pumpking",
+                "rest_time": 3.4,
                 "texture": "pumpking",
                 "width": 23,
                 "height": 23,
@@ -377,6 +399,7 @@ ENTITY_DEFS = {
         "boss": {
             "level": 10,
             "type": "boss",
+            "rest_time": 1.6,
             "name": "Man-Eater Flower",
             "texture": "man-eater-flower",
             "width": 30,
@@ -408,6 +431,7 @@ ENTITY_DEFS = {
                     "target_type": "character",
                     "sound_effect": "powerup",
                     "require_target": False,
+                    "heals": True,
                     "func": _boss_heal_aoe,
                 },
             ],

@@ -166,7 +166,15 @@ class PartyWalkState(PartyBaseState):
             return
 
         region = party.world.current_region()
-        if region.tilemap.get_gid("fence", to_y - 1, to_x - 1) != settings.TILE_IDS["empty"]:
+
+        # Walking into the guild hall's door takes the party inside rather
+        # than moving them, the same shape as the region edge checks right
+        # above: the step never happens, something else does instead.
+        if region.building is not None and region.building.is_door(to_x, to_y):
+            party.world.enter_building()
+            return
+
+        if region.is_solid(to_x, to_y):
             party.change_state("idle")
             return
 

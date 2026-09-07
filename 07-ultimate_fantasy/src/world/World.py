@@ -133,12 +133,58 @@ class World:
             on_complete=on_fade_in_complete,
         )
 
+    def enter_building(self) -> None:
+        """Takes the party through the guild hall's door and back out
+        again on the same tile they were standing on.
+
+        Same shape as move() and as a battle encounter: fade to black,
+        swap what is on screen while nothing can be seen, fade back.
+        """
+        from src.states.game.FadeInState import FadeInState
+        from src.states.game.FadeOutState import FadeOutState
+        from src.states.game.GuildHallState import GuildHallState
+
+        leader = self.party.first_alive()
+
+        if leader is None:
+            return
+
+        restore_x, restore_y = leader.map_x, leader.map_y
+        restore_direction = leader.direction
+
+        self.party.change_state("idle")
+        self.freeze_party()
+
+        def on_exit() -> None:
+            self.party.set_position(restore_x, restore_y, restore_direction)
+
+        def on_fade_in_complete() -> None:
+            self.stack.push(
+                GuildHallState(self.stack), world=self, on_exit=on_exit
+            )
+            self.stack.push(
+                FadeOutState(self.stack),
+                color=(0, 0, 0),
+                time=0.5,
+                on_complete=lambda: None,
+            )
+
+        self.stack.push(
+            FadeInState(self.stack),
+            color=(0, 0, 0),
+            time=0.5,
+            on_complete=on_fade_in_complete,
+        )
+
     def update(self, dt: float) -> None:
         self.current_region().update(dt)
         self.party.update(dt)
 
     def on_input(self, input_id: str, input_data: Any) -> None:
-        if input_data.pressed:
+        # Mouse clicks reach every state, and clicking on the overworld
+        # does nothing, so they must not count as unsaved progress or the
+        # pause menu would start warning about a game that never changed.
+        if input_id != "click" and input_data.pressed:
             self.dirty = True
 
         self.party.on_input(input_id, input_data)

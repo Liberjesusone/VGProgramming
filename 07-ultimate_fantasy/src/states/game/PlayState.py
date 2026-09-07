@@ -78,6 +78,18 @@ class PlayState(BaseState):
             self.state_machine.push(PauseMenuState(self.state_machine), play_state=self)
             return
 
+        if input_id == "party_menu" and input_data.pressed:
+            from src.states.game.PartyMenuState import PartyMenuState
+
+            # Same freeze the pause menu does. The stack stops updating
+            # this state the moment something covers it, but a step that
+            # is already mid tween is driven by the global Timer and would
+            # otherwise chain into another one on a key release this state
+            # never gets to see.
+            self.world.freeze_party()
+            self.state_machine.push(PartyMenuState(self.state_machine), world=self.world)
+            return
+
         self.world.on_input(input_id, input_data)
 
     def render(self, surface: pygame.Surface) -> None:
