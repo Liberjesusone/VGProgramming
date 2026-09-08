@@ -32,6 +32,9 @@ input_handler.InputHandler.set_mouse_click_action(
 )
 input_handler.InputHandler.set_mouse_motion_action(None, "touch_motion")
 
+# Splits a bird already in flight into three. See PlayState._split.
+input_handler.InputHandler.set_keyboard_action(input_handler.KEY_SPACE, "split")
+
 TITLE = "Throw a Bird"
 
 BASE_DIR = pathlib.Path(__file__).parent
