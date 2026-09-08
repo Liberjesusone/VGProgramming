@@ -27,6 +27,18 @@ input_handler.InputHandler.set_keyboard_action(input_handler.KEY_SPACE, "space")
 input_handler.InputHandler.set_keyboard_action(input_handler.KEY_RETURN, "enter")
 input_handler.InputHandler.set_keyboard_action(input_handler.KEY_KP_ENTER, "enter")
 input_handler.InputHandler.set_keyboard_action(input_handler.KEY_p, "pause")
+input_handler.InputHandler.set_keyboard_action(input_handler.KEY_i, "party_menu")
+
+# The party menu is driven with the mouse. Only the click is bound here,
+# and on purpose: an action registered with InputHandler is delivered to
+# whichever state is on top of the stack, whatever state that happens to
+# be, and every on_input in this project opens with input_data.pressed.
+# A click carries that flag so every other state simply ignores it, but a
+# mouse motion event does not carry it at all, so binding movement here
+# would crash the title screen the first time the mouse twitched over it.
+# Hovering is polled per frame instead, by the two states that care (see
+# PartyMenuState.update), which is what a hover really is anyway.
+input_handler.InputHandler.set_mouse_click_action(input_handler.MOUSE_BUTTON_1, "click")
 
 TITLE = "Ultimate Fantasy"
 
@@ -53,6 +65,44 @@ TILE_SIZE = 16
 
 TILE_WIDTH = VIRTUAL_WIDTH // TILE_SIZE
 TILE_HEIGHT = VIRTUAL_HEIGHT // TILE_SIZE
+
+
+def to_virtual(position):
+    """
+    Turns a window pixel position into a virtual screen one.
+
+    gale.Game draws everything on a VIRTUAL_WIDTH x VIRTUAL_HEIGHT
+    surface and then stretches it over the whole window, but pygame
+    reports mouse positions in window pixels. Any widget hit test has to
+    undo that stretch first or every click lands more than three times
+    too far right and down.
+    """
+    x, y = position
+    return (x * VIRTUAL_WIDTH / WINDOW_WIDTH, y * VIRTUAL_HEIGHT / WINDOW_HEIGHT)
+
+
+#
+# guild hall (see src/world/Building.py)
+#
+# The part of the town the hall stands on, in tiles: five wide, five
+# tall, with its door in the middle of the bottom row. guild_hall.png is
+# taller than that on purpose, so the roof rises one tile above the
+# footprint and the party can walk past it instead of being stopped by
+# it.
+#
+# The rows matter. Row 7 is the corridor the west and east gates open
+# onto, which is why nothing is ever placed on it, and row 14 is the
+# fence, so the last walkable row is 13. Sitting on rows 8 to 12 keeps
+# the corridor clear and leaves row 13 free to walk up to the door from.
+GUILD_HALL_TILE_WIDTH = 5
+GUILD_HALL_TILE_HEIGHT = 5
+GUILD_HALL_MAP_X = 4
+GUILD_HALL_MAP_Y = 8
+GUILD_HALL_DOOR_OFFSET_X = 2
+
+# The row of guild_interior.png where the back wall ends and the wooden
+# floor begins. GuildHallState stands the party below it.
+GUILD_INTERIOR_FLOOR_Y = 104
 
 #
 # tile ids (1-based, matching the tilesheet's slicing -- see settings.frame())
@@ -126,6 +176,12 @@ TEXTURES = {
     ),
     "man-eater-flower": pygame.image.load(
         BASE_DIR / "assets" / "graphics" / "enemies" / "man_eater_flower.png"
+    ),
+    "guild-hall": pygame.image.load(
+        BASE_DIR / "assets" / "graphics" / "guild_hall.png"
+    ),
+    "guild-interior": pygame.image.load(
+        BASE_DIR / "assets" / "graphics" / "guild_interior.png"
     ),
 }
 

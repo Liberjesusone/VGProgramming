@@ -25,6 +25,7 @@ from gale.tilemap import TileMap
 import settings
 from src.definitions.entity import ENTITY_DEFS, ENTITY_HEIGHT, ENTITY_WIDTH
 from src.entity.NPC import NPC
+from src.world.Building import guild_hall
 from src.states.entity.NPCIdleState import NPCIdleState
 
 TILE_IDS = settings.TILE_IDS
@@ -66,7 +67,25 @@ class Region:
             "west": definition.get("west_gate", False),
         }
 
+        # Built before the maps because the decoration pass below places
+        # the town's NPCs, and it has to know which cells the hall is
+        # standing on so nobody ends up spawning inside a wall.
+        self.building = guild_hall() if self.is_town else None
+
         self._create_maps()
+
+    def is_solid(self, tile_x: int, tile_y: int) -> bool:
+        """Whether the party is blocked from stepping onto this tile, by
+        the fence around the region or by a building on it. The door is
+        included: walking into it is what takes the party inside, so it is
+        never actually stood on (see PartyWalkState._attempt_move)."""
+        if (
+            self.tilemap.get_gid("fence", tile_y - 1, tile_x - 1)
+            != settings.TILE_IDS["empty"]
+        ):
+            return True
+
+        return self.building is not None and self.building.covers(tile_x, tile_y)
 
     def _create_maps(self) -> None:
         width, height = self.tile_width, self.tile_height
@@ -154,6 +173,10 @@ class Region:
                             len(self.npcs) < self.num_npcs
                             and random.random() < 0.05
                             and y != height // 2
+                            and not (
+                                self.building is not None
+                                and self.building.occludes(x, y)
+                            )
                         ):
                             self._create_npc(x, y)
                 else:
@@ -204,6 +227,11 @@ class Region:
 
     def render(self, surface: pygame.Surface) -> None:
         self.tilemap.render(surface)
+
+        # Between the ground and the townsfolk, so anyone standing below
+        # the hall is drawn in front of it.
+        if self.building is not None:
+            self.building.render(surface)
 
         for npc in self.npcs:
             npc.render(surface)

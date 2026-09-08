@@ -59,6 +59,7 @@ class Party:
                     "texture": gender_def["texture"],
                     "class": char_def["type"],
                     "level": char_def["level"],
+                    "rest_time": char_def["rest_time"],
                     "baseHP": char_def["baseHP"],
                     "baseAttack": char_def["baseAttack"],
                     "baseDefense": char_def["baseDefense"],

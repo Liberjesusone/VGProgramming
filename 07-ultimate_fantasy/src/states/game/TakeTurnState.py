@@ -5,17 +5,20 @@ Study Case: Ultimate Fantasy (RPG)
 Author: Alejandro Mujica
 alejandro.j.mujic4@gmail.com
 
-This file contains the class TakeTurnState: drives one full round of
-battle -- every living party member acts (in slot order), then every
-living enemy acts (in list order, AI picking a uniformly random action
-among its own, guaranteed to hit a living target), repeating round after
-round until one side is wiped. Also handles the victory (EXP/level-up)
-and defeat (game over) end-of-battle flows.
+Turn order rewritten by Liber Jesus Puccini (liberjesusone@gmail.com):
+rounds used to be a fixed loop, every party member in slot order and then
+every enemy in list order. Now each battle entity has to rest for its own
+number of seconds after acting, and whoever finishes resting first takes
+the next turn, so a fast fighter simply gets more turns than a slow one.
+
+This file contains the class TakeTurnState: the clock the whole battle
+runs on, plus the victory (experience and level up) and defeat flows,
+which are unchanged.
 """
 
 import math
 import random
-from typing import Any
+from typing import Any, List, Optional
 
 import pygame
 
@@ -23,73 +26,135 @@ from gale.state import BaseState
 from gale.timer import Timer
 
 import settings
+from src.entity.Character import Character
 
 
 class TakeTurnState(BaseState):
+    """
+    Advances every entity's rest timer and hands the turn to the first one
+    that finishes.
+
+    The clock only runs while this state is on top of the stack, and that
+    is exactly the behaviour the mechanic needs. gale.state.StateStack
+    updates the top state and nothing else, so the moment a turn pushes a
+    menu or a message the timers stop dead and only start again once the
+    player has answered. Thinking time is free: waiting on the action menu
+    never charges anyone else's recovery, and the seconds that count are
+    the ones the battle itself is actually spending.
+    """
+
     def enter(self, battle_state: Any) -> None:
         self.battle_state = battle_state
-        self.enemy_attacks_in_a_row = 0
-        self._take_party_turn(0)
 
-    def _party_keys(self):
-        return sorted(self.battle_state.party.characters.keys())
+        # Set once the battle is decided, so a stray frame between the
+        # last blow and the fade cannot hand out one more turn.
+        self.finished = False
 
-    # -- party turns ---------------------------------------------------
+        # A random slice of each entity's own rest is treated as already
+        # served, so the opening turns arrive spread out instead of the
+        # whole board acting on the very first frame it becomes ready.
+        for entity in self._battle_entities():
+            entity.start_random_rest()
 
-    def _take_party_turn(self, index: int) -> None:
-        keys = self._party_keys()
+    # -- the clock -------------------------------------------------------
 
-        if index >= len(keys):
-            self._take_enemy_turn(0)
+    def _battle_entities(self) -> List[Any]:
+        keys = sorted(self.battle_state.party.characters.keys())
+        characters = [self.battle_state.party.characters[key] for key in keys]
+        return characters + list(self.battle_state.enemies)
+
+    def update(self, dt: float) -> None:
+        for enemy in self.battle_state.enemies:
+            if not enemy.dead:
+                enemy.update(dt)
+
+        if self.finished:
             return
 
-        character = self.battle_state.party.characters[keys[index]]
+        actor = self._advance_clock(dt)
 
-        if character.dead:
-            self._take_party_turn(index + 1)
-            return
+        if actor is not None:
+            self._take_turn(actor)
 
+    def _advance_clock(self, dt: float) -> Optional[Any]:
+        """
+        :returns: The entity whose turn it is now, or None if nobody has
+            finished resting yet. When several are ready at once the one
+            that has been waiting longest past its own rest time goes
+            first, which keeps a fast entity from being starved by a slow
+            one that happened to come up in the same frame.
+        """
+        ready = []
+
+        for entity in self._battle_entities():
+            if entity.dead:
+                continue
+
+            entity.rest(dt)
+
+            if entity.is_rested():
+                ready.append(entity)
+
+        if not ready:
+            return None
+
+        return max(ready, key=lambda entity: entity.rest_timer - entity.rest_time)
+
+    def _take_turn(self, entity: Any) -> None:
+        # Back of the queue right away, before the turn is even resolved,
+        # so a menu left open on screen cannot let the same entity come up
+        # again the frame after it closes.
+        entity.start_rest()
+
+        if isinstance(entity, Character):
+            self._character_turn(entity)
+        else:
+            self._enemy_turn(entity)
+
+    def _after_action(self) -> None:
+        """Called once a turn has fully played out. Nothing else to do
+        when the battle is still going: update simply picks the clock back
+        up on the next frame."""
+        if all(enemy.dead for enemy in self.battle_state.enemies):
+            self.finished = True
+            self._victory()
+        elif all(
+            character.dead for character in self.battle_state.party.characters.values()
+        ):
+            self.finished = True
+            self._faint()
+
+    # -- party turns -----------------------------------------------------
+
+    def _character_turn(self, character: Any) -> None:
         from src.states.game.BattleMessageState import BattleMessageState
 
         self.state_machine.push(
             BattleMessageState(self.state_machine),
             battle_state=self.battle_state,
             message=f"Turn for {character.name}! Select an action.",
-            on_close=lambda: self._prompt_action(character, index),
+            on_close=lambda: self._prompt_action(character),
         )
 
-    def _prompt_action(self, character: Any, index: int) -> None:
+    def _prompt_action(self, character: Any) -> None:
         from src.states.game.SelectActionState import SelectActionState
-
-        def on_action_selected() -> None:
-            if all(enemy.dead for enemy in self.battle_state.enemies):
-                self._victory()
-            else:
-                self._take_party_turn(index + 1)
 
         self.state_machine.push(
             SelectActionState(self.state_machine),
             battle_state=self.battle_state,
             entity=character,
-            on_action_selected=on_action_selected,
+            on_action_selected=self._after_action,
         )
 
-    # -- enemy turns ----------------------------------------------------
+    # -- enemy turns -----------------------------------------------------
 
-    def _take_enemy_turn(self, index: int) -> None:
-        enemies = self.battle_state.enemies
-
-        if index >= len(enemies):
-            self._take_party_turn(0)
-            return
-
-        enemy = enemies[index]
-
-        if enemy.dead:
-            self._take_enemy_turn(index + 1)
-            return
-
-        self.enemy_attacks_in_a_row += 1
+    def _enemy_turn(self, enemy: Any) -> None:
+        """
+        The boss used to get extra swings through a counter that let it
+        act again without giving up its turn. It does not need one any
+        more: its rest time is roughly half of everything else's, so the
+        clock hands it about two turns per turn of the party's on its own.
+        """
         action = random.choice(enemy.actions)
 
         if action["target_type"] == "enemy":
@@ -105,7 +170,9 @@ class TakeTurnState(BaseState):
             amount = action["func"](enemy, target, action.get("strength"))
             settings.SOUNDS[action["sound_effect"]].play()
             Timer.tween(0.5, [(target.energy_bar, {"value": target.current_hp})])
-            message = f"{enemy.name} used {action['name']} for {amount} HP on {target.name}."
+            message = (
+                f"{enemy.name} used {action['name']} for {amount} HP on {target.name}."
+            )
         else:
             alive_targets = [target for target in targets if not target.dead]
             amount = action["func"](enemy, alive_targets, action.get("strength"))
@@ -119,28 +186,20 @@ class TakeTurnState(BaseState):
                 f"{target_label}."
             )
 
-        if all(character.dead for character in self.battle_state.party.characters.values()):
+        if all(
+            character.dead for character in self.battle_state.party.characters.values()
+        ):
+            self.finished = True
             self._faint()
             return
 
         from src.states.game.BattleMessageState import BattleMessageState
 
-        def on_message_close() -> None:
-            if (
-                self.enemy_attacks_in_a_row < 3
-                and enemy.klass == "boss"
-                and random.randint(1, 3) == 1
-            ):
-                self._take_enemy_turn(index)
-            else:
-                self.enemy_attacks_in_a_row = 0
-                self._take_enemy_turn(index + 1)
-
         self.state_machine.push(
             BattleMessageState(self.state_machine),
             battle_state=self.battle_state,
             message=message,
-            on_close=on_message_close,
+            on_close=self._after_action,
         )
 
     # -- victory / experience --------------------------------------------
@@ -163,6 +222,9 @@ class TakeTurnState(BaseState):
         num_characters = len(self.battle_state.party.characters)
         opponent_level = total_level / num_characters
         self._inc_exp(0, opponent_level)
+
+    def _party_keys(self):
+        return sorted(self.battle_state.party.characters.keys())
 
     def _inc_exp(self, index: int, opponent_level: float) -> None:
         keys = self._party_keys()
@@ -261,15 +323,14 @@ class TakeTurnState(BaseState):
                 # underneath it (matches the original's "pop twice"). The
                 # second pop runs BattleState.exit(), which always calls
                 # the on_exit it was pushed with (see
-                # PartyWalkState._trigger_encounter) -- for a NORMAL battle
+                # PartyWalkState._trigger_encounter). For a NORMAL battle
                 # that's the whole point (it un-pauses the overworld's
                 # "world"/"town" music the encounter had merely paused,
                 # not stopped, so walking around resumes right where the
                 # music left off), but here there's no overworld to return
                 # to: the very next thing on screen is TheEndState. Without
                 # silencing what that on_exit just resumed, it played
-                # underneath "the-end" for the rest of the game -- the two
-                # overlapping tracks this whole fix is about. _victory
+                # underneath "the-end" for the rest of the game. _victory
                 # already stopped "battle" and _fade_out already stopped
                 # the "victory" jingle, so this only has the resumed
                 # overworld music left to clean up, but stopping "battle"
@@ -281,8 +342,8 @@ class TakeTurnState(BaseState):
                 settings.stop_music("world")
                 settings.stop_music("town")
                 # A bare SOUNDS["the-end"].play() (the original code here)
-                # starts a plain, untracked Sound channel -- unlike every
-                # other music cue in this game, it was never routed
+                # starts a plain, untracked Sound channel, unlike every
+                # other music cue in this game: it was never routed
                 # through play_music, so nothing could stop it the same
                 # way the stops above stop everything else (see
                 # TheEndState's restart handler).
