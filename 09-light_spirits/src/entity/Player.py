@@ -6,76 +6,215 @@ liberjesusone@gmail.com
 
 This file contains the class Player.
 
-The art is not drawn yet, so for now the player is a plain shape at the
-exact size the real sprite will be (settings.PLAYER_WIDTH x
-PLAYER_HEIGHT). Everything around it, the anchor at the feet, the small
-collision box, the depth sorting, is already final, so dropping in the
-sprite later changes only render().
+Movement, idling and the charged attack each live in their own state, in
+src/states/entity/player, hung off state_machine below. 
+Player itself only holds the data every one of those states
+reads or writes (position, direction, how the current weapon is
+charging, which sprite is currently showing) and the always-on behaviour
+none of them need to differ on: rendering, reading the mouse, and
+switching weapons.
+
+Player carries two weapons, bow and sword (src/definitions/weapons.py),
+and which one is equipped decides everything about what a charge and an
+attack actually do, a ranged shot versus a melee cone, without the
+states themselves ever branching on it. self.pose ("idle", "step",
+"charge1", "charge2" or "attack") is the other half of that: it names
+which of the equipped weapon's own texture keys is currently showing,
+and is all the states ever have to set to change what is on screen.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import pygame
 
-import settings
+from gale.state import StateMachine
 
-SPEED = 150.0
+import settings
+from actions import ATTACK, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT, MOVE_UP, ROLL, SWITCH_WEAPON
+from src.definitions.weapons import WEAPON_DEFS, WEAPON_ORDER
+from src.states.entity import player as player_states
 
 """ How much of the player blocks. Not the whole body: in a top-down view
  only the feet are really on the ground, so a narrow box down there is
  what bumps into things. It is also what lets the head overlap a prop
- standing behind them without being stopped by it.
- """ 
+ standing behind them without being stopped by it. """
 FEET_WIDTH = 20
 FEET_DEPTH = 12
 
-BODY_COLOR = (206, 198, 176)
-BODY_EDGE = (56, 52, 46)
-CLOAK_COLOR = (92, 74, 108)
 SHADOW_COLOR = (0, 0, 0, 90)
+
+# Energy to spend on actions
+MAX_STAMINA = 4
+MIN_STAMINA = 0.6  # To do an action see on_input()
+
+""" The recovery bar at the bottom of the HUD: fixed size and position on
+the virtual surface, centered horizontally, a fixed margin above the
+bottom edge. Medium-dark pastel green, as asked -- a darker track
+underneath it so an empty bar still reads as "there" rather than
+invisible. """
+HUD_BAR_WIDTH = 120
+HUD_BAR_HEIGHT = 6
+HUD_BAR_BOTTOM_MARGIN = 14
+
+HUD_BAR_TRACK_COLOR = (32, 36, 32)
+HUD_BAR_BORDER_COLOR = (70, 92, 74)
+HUD_BAR_FILL_COLOR = (94, 148, 104)
+
+""" The roll's own texture keys, read directly instead of through
+weapon_def like every other pose: a roll is not part of either weapon's
+own set (see settings.CHARACTER_POSE_SETS), so there is nothing to look
+up an equipped weapon for. """
+ROLL_TEXTURES = {
+    "roll1": "player-roll1-{direction}",
+    "roll2": "player-roll2-{direction}",
+    "roll3": "player-roll3-{direction}",
+}
 
 
 class Player:
-    def __init__(self, x: float, y: float) -> None:
+    def __init__(self, x: float, y: float, level: Any) -> None:
         # The feet, same anchor every prop uses, so both can be sorted
         # against each other with no conversion.
         self.x: float = x
         self.y: float = y
 
-        self.width: int = settings.PLAYER_WIDTH
-        self.height: int = settings.PLAYER_HEIGHT
+        # Held on to so states can test movement/attacks against it without
+        # every one of them needing it threaded through their own constructor.
+        self.level = level
 
         self.health: int = 6
+
+        self.equipped_weapon: str = "bow"
+
+        """ Which of the 4 sprites is showing. Assigned by movement while
+        walking (see PlayerWalkState) and by aim while charging or
+        attacking (see _aim_bucket), there is no diagonal art, so
+        this is always the nearest of the 4 compass directions to
+        whichever of those is currently in charge of it. """
         self.direction: str = "down"
 
+        """ Which of the equipped weapon's own texture keys is showing,
+        see the module docstring. Every state that changes what the
+        player looks like does it by setting this, never by touching
+        settings.TEXTURES directly. """
+        self.pose: str = "idle"
+
+        """ Where an attack actually points: a continuous world-space unit
+        vector toward the mouse, updated every frame in update() below,
+        independent of the coarse, 4-way sprite direction above. """
+        self.aim_direction: pygame.Vector2 = pygame.Vector2(0, 1)
+
         self.held: Dict[str, bool] = {
-            "move_left": False,
-            "move_right": False,
-            "move_up": False,
-            "move_down": False,
+            MOVE_LEFT: False,
+            MOVE_RIGHT: False,
+            MOVE_UP: False,
+            MOVE_DOWN: False,
         }
 
-        self._shadow = pygame.Surface((self.width, FEET_DEPTH), pygame.SRCALPHA)
+        """ Edge-triggered intent, the same shape as sword_requested in
+        Princess: set once by on_input, consumed (and cleared) by
+        whichever state's update() is running when it happens. """
+        self.attack_held: bool = False
+        self.attack_requested: bool = False
+
+        # This energy is wasted in AttackState/RollState depending on the action
+        self.current_stamina: float = MAX_STAMINA
+
+        """ Same edge-triggered shape as attack_requested, consumed by
+        PlayerBaseState._update_roll, only Idle and Walk call that,
+        so a roll is never available mid-swing or mid-roll. """
+        self.roll_requested: bool = False
+
+        """ True for a duration of PlayerRollState, read by
+        whatever eventually resolves damage against the player (there
+        is no such code yet; enemies are a later milestone). """
+        self.invulnerable: bool = False
+
+        """ 0..1, how much of the equipped weapon's own charge_time has
+        been held so far. Meaningful for either weapon, a bow draws
+        further back, a sword winds up higher, which is exactly why
+        it lives here rather than being named after one of them. """
+        self.charge: float = 0.0
+
+        # Pure render offset, see PlayerWalkState, never touched by
+        # anything that cares about the player's actual position.
+        self.bob_offset: float = 0.0
+
+        """ Sized off the feet's own footprint, not off the sprite's
+        silhouette: a weapon held out to one side makes the *picture*
+        wider in some directions than others, but the character is not
+        actually standing any wider, so the shadow would wobble between
+        directions (and between weapons) if it followed the sprite instead. """
+        shadow_width = FEET_WIDTH + 10
+        self._shadow = pygame.Surface((shadow_width, FEET_DEPTH), pygame.SRCALPHA)
         pygame.draw.ellipse(self._shadow, SHADOW_COLOR, self._shadow.get_rect())
 
+        self.state_machine = StateMachine(
+            {
+                "idle": lambda sm, p=self: player_states.PlayerIdleState(p, sm),
+                "walk": lambda sm, p=self: player_states.PlayerWalkState(p, sm),
+                "attack": lambda sm, p=self: player_states.PlayerAttackState(p, sm),
+                "roll": lambda sm, p=self: player_states.PlayerRollState(p, sm),
+            }
+        )
+        self.change_state("idle")
+
+    def change_state(self, name: str, *args: Any, **kwargs: Any) -> None:
+        self.state_machine.change(name, *args, **kwargs)
+
+    # ------------------------------------------------------------
+    # Properties and Geometry
+    # ------------------------------------------------------------
     @property
     def dead(self) -> bool:
         return self.health <= 0
 
     @property
     def sort_y(self) -> float:
+        """ Where this player sits in the front-to-back order. The feet, so a
+        player standing lower on the screen is drawn in front of props above it."""
         return self.y
 
     @property
+    def weapon_def(self) -> Dict[str, Any]:
+        return WEAPON_DEFS[self.equipped_weapon]
+
+    @property
+    def sprite(self) -> pygame.Surface:
+        if self.pose in ROLL_TEXTURES:
+            key = ROLL_TEXTURES[self.pose].format(direction=self.direction)
+        else:
+            key = self.weapon_def[f"{self.pose}_texture"].format(direction=self.direction)
+
+        return settings.TEXTURES[key]
+
+    @property
+    def width(self) -> int:
+        """ The current sprite's own width, not a fixed constant: 'down'
+        (a weapon held out to the side) reads wider than 'up' (mostly
+        hidden behind the body), and forcing one width for both would
+        either crop one or pad the other with empty space. """
+        return self.sprite.get_width()
+
+    @property
+    def height(self) -> int:
+        """ Every pose was scaled to the same settings.PLAYER_HEIGHT at
+        build time (see tools/build_assets.py), so this one never
+        actually varies the way width does. """
+        return settings.PLAYER_HEIGHT
+
+    @property
     def center(self) -> pygame.Vector2:
-        """The middle of the body, which is what the camera follows.
-        Following the feet instead would sit the view half a body too
-        low."""
+        """ The middle of the body: what the camera follows, and the
+        point every attack/aim distance is measured from. Using the feet
+        for either would sit the view, and a weapon's reach, half a body
+        too low. """
         return pygame.Vector2(self.x, self.y - self.height / 2)
 
     def feet_rect_at(self, x: float, y: float) -> pygame.Rect:
         return pygame.Rect(
-            round(x - FEET_WIDTH / 2), round(y - FEET_DEPTH), FEET_WIDTH, FEET_DEPTH)
+            round(x - FEET_WIDTH / 2), round(y - FEET_DEPTH), FEET_WIDTH, FEET_DEPTH
+        )
 
     @property
     def feet_rect(self) -> pygame.Rect:
@@ -87,66 +226,190 @@ class Player:
             round(self.x - self.width / 2),
             round(self.y - self.height),
             self.width,
-            self.height)
+            self.height,
+        )
 
-    def on_input(self, input_id: str, input_data: Any) -> None:
-        if input_id not in self.held:
-            return
-
-        if input_data.pressed:
-            self.held[input_id] = True
-        elif input_data.released:
-            self.held[input_id] = False
-
-    def update(self, dt: float, level: Any) -> None:
-        # If we click both keys at a time, no movement will be made
-        dx = self.held["move_right"] - self.held["move_left"]
-        dy = self.held["move_down"] - self.held["move_up"]
-
-        if dx == 0 and dy == 0:
-            return
-
-        """ Normalised, so walking diagonally is not faster than walking
-        straight, which it would be if both axes moved a full step. """
-        movement = pygame.Vector2(dx, dy).normalize() * SPEED * dt
-
-        if abs(dx) > abs(dy):
-            self.direction = "right" if dx > 0 else "left"
-        else:
-            self.direction = "down" if dy > 0 else "up"
-
-        # One axis at a time, so running into a wall diagonally s
-        # lides along it instead of stopping.
-        self._move_axis(movement.x, 0, level)
-        self._move_axis(0, movement.y, level)
-
-    def _move_axis(self, dx: float, dy: float, level: Any) -> None:
-        """ Move the collision rect and checks if it the level allows it.
-        It's used to move one axis at a time. """
+    def _move_axis(self, dx: float, dy: float) -> None:
+        """ Move the collision rect and checks if the level allows it.
+        Called once per axis, so a diagonal move that clips a wall on
+        only one of the two axes still slides along it. """
         target_x = self.x + dx
         target_y = self.y + dy
 
-        if level.blocked(self.feet_rect_at(target_x, target_y)):
+        if self.level.blocked(self.feet_rect_at(target_x, target_y)):
             return
 
         self.x, self.y = target_x, target_y
 
-    def render(self, surface: pygame.Surface, camera: Any) -> None:
-        shadow_rect = pygame.Rect(round(self.x - self.width / 2), 
-                                  round(self.y - 8),
-                                  self.width, 12)
-        surface.blit(
-            pygame.transform.scale(self._shadow, camera.apply(shadow_rect).size),
-            camera.apply(shadow_rect),
+    def _bucket_direction(self, vector: pygame.Vector2) -> str:
+        """ Any vector's nearest compass direction, for picking which of
+        the 4 discrete sprites to show, movement/aim/roll are all
+        continuous, the art is not. """
+        if abs(vector.x) > abs(vector.y):
+            return "right" if vector.x > 0 else "left"
+
+        return "down" if vector.y > 0 else "up"
+
+    def _aim_bucket(self) -> str:
+        return self._bucket_direction(self.aim_direction)
+
+    def can_switch_weapon(self) -> bool:
+        """ Not mid-charge and not mid-attack, switching weapons while
+        either is in progress would either strand a charge built up for
+        a weapon no longer in hand, or interrupt a swing/shot already
+        under way. """
+        return (
+            self.charge == 0.0
+            and not self.attack_held
+            and not isinstance(self.state_machine.current, player_states.PlayerAttackState)
         )
 
-        body = camera.apply(self.image_rect)
-        pygame.draw.rect(surface, CLOAK_COLOR, body, border_radius=max(1, body.width // 3))
-        head = pygame.Rect(0, 0, body.width, body.height // 3)
-        head.midtop = body.midtop
-        pygame.draw.rect(surface, BODY_COLOR, head, border_radius=max(1, head.width // 3))
-        pygame.draw.rect(surface, BODY_EDGE, body, 1, border_radius=max(1, body.width // 3))
+    def switch_weapon(self) -> None:
+        if not self.can_switch_weapon():
+            return
+
+        index = WEAPON_ORDER.index(self.equipped_weapon)
+        self.equipped_weapon = WEAPON_ORDER[(index + 1) % len(WEAPON_ORDER)]
+        self.pose = "idle"
+
+    # ------------------------------------------------------------
+    # Input 
+    # ------------------------------------------------------------
+    def on_input(self, input_id: str, input_data: Any) -> None:
+        if input_id == ATTACK:
+            if input_data.pressed and self.current_stamina >= MIN_STAMINA:
+                self.attack_held = True
+            elif input_data.released and self.attack_held:
+                self.attack_held = False
+                self.attack_requested = True
+            return
+
+        if input_id == SWITCH_WEAPON and input_data.pressed:
+            self.switch_weapon()
+            return
+
+        if input_id == ROLL and input_data.pressed and self.current_stamina >= MIN_STAMINA: 
+            # Only queued from Idle/Walk: requesting it mid-swing or mid-roll
+            if isinstance(self.state_machine.current,
+                         (player_states.PlayerIdleState, player_states.PlayerWalkState)):
+                self.roll_requested = True
+            return
+
+        if input_id in self.held:
+            if input_data.pressed:
+                self.held[input_id] = True
+            elif input_data.released:
+                self.held[input_id] = False
+
+    # ------------------------------------------------------------
+    # Update
+    # ------------------------------------------------------------
+    def update(self, dt: float, camera: Any) -> None:
+        self.current_stamina = min(self.current_stamina + dt, MAX_STAMINA)
+        self._update_aim(camera)
+        self.state_machine.update(dt)
+
+    def _update_aim(self, camera: Any) -> None:
+        mouse_virtual = settings.to_virtual(pygame.mouse.get_pos())
+        mouse_world = pygame.Vector2(camera.screen_to_world(mouse_virtual))
+        to_mouse = mouse_world - self.center
+
+        """ Guards the normalize(): if the mouse sits exactly on the
+        player's own centre there is no direction to face, so the last
+        one found is kept rather than raising or snapping to (0, 0). """
+        if to_mouse.length_squared() > 1:
+            self.aim_direction = to_mouse.normalize()
+
+    # ------------------------------------------------------------
+    # Render 
+    # ------------------------------------------------------------
+    def render(self, surface: pygame.Surface, camera: Any) -> None:
+        """ No per-frame scaling, matching Prop.render: this project never
+        changes camera.zoom, so the extra transform would only cost
+        time without changing a single pixel of the result. The day
+        zoom does change, both of these need the same fix at once. """
+
+        # The attack hitbox
+        if self.attack_held:
+            self._render_charge_preview(surface, camera)
+        elif isinstance(self.state_machine.current, player_states.PlayerAttackState):
+            self.state_machine.current.render_hit(surface, camera)
+        
+        shadow_rect = pygame.Rect(
+            round(self.x - self._shadow.get_width() / 2),
+            round(self.y - 8),
+            self._shadow.get_width(),
+            FEET_DEPTH,
+        )
+        surface.blit(self._shadow, camera.apply(shadow_rect))
+
+        sprite_rect = self.image_rect.move(0, round(self.bob_offset))
+        surface.blit(self.sprite, camera.apply(sprite_rect))
+        
+
+    def render_hud(self, surface: pygame.Surface) -> None:
+        """ The attack recovery bar. Drawn directly in virtual-surface
+        coordinates, so it must never scroll or pan with the camera. """
+        fraction = min(1.0, self.current_stamina / MAX_STAMINA)
+
+        track = pygame.Rect(
+            (settings.VIRTUAL_WIDTH - HUD_BAR_WIDTH) // 2,
+            settings.VIRTUAL_HEIGHT - HUD_BAR_BOTTOM_MARGIN - HUD_BAR_HEIGHT,
+            HUD_BAR_WIDTH,
+            HUD_BAR_HEIGHT,
+        )
+        pygame.draw.rect(surface, HUD_BAR_TRACK_COLOR, track)
+
+        fill = track.copy()
+        fill.width = round(HUD_BAR_WIDTH * fraction)
+        pygame.draw.rect(surface, HUD_BAR_FILL_COLOR, fill)
+        pygame.draw.rect(surface, HUD_BAR_BORDER_COLOR, track, 1)
 
     def render_debug(self, surface: pygame.Surface, camera: Any) -> None:
         pygame.draw.rect(surface, (90, 220, 140), camera.apply(self.image_rect), 1)
         pygame.draw.rect(surface, (220, 80, 80), camera.apply(self.feet_rect), 1)
+
+        # A short line pointing where an attack would go, always visible in debug 
+        # so the mouse-aim wiring itself is easy to confirm even outside a swing/shot.
+        tip = self.center + self.aim_direction * 26
+        pygame.draw.line(
+            surface,
+            (120, 190, 230),
+            camera.world_to_screen((self.center.x, self.center.y)),
+            camera.world_to_screen((tip.x, tip.y)),
+            1,
+        )
+
+        """ The attack's own hitbox (while it is actually happening) is drawn 
+        by PlayerAttackState itself, it is the one place that already knows 
+        exactly what that attack locked in, and nothing outside it needs to. """
+        current = self.state_machine.current
+        render_debug = getattr(current, "render_debug", None)
+
+        if render_debug is not None:
+            render_debug(surface, camera)
+
+    def _render_charge_preview(self, surface: pygame.Surface, camera: Any) -> None:
+        weapon = self.weapon_def
+
+        if weapon["kind"] == "melee":
+            from src.combat.cone import polygon_points
+            from src.definitions.combat import lerp
+
+            half_angle = lerp(weapon["min_half_angle"], weapon["max_half_angle"], self.charge)
+            reach = lerp(weapon["min_reach"], weapon["max_reach"], self.charge)
+            points = [
+                camera.world_to_screen((point.x, point.y))
+                for point in polygon_points(self.center, self.aim_direction, half_angle, reach)
+            ]
+            pygame.draw.polygon(surface, settings.ATTACK_HITBOX_COLOR, points, 1)
+        else:
+            tip = self.center + self.aim_direction * weapon["max_range"] / 3
+            pygame.draw.line(
+                surface,
+                settings.ATTACK_HITBOX_COLOR,
+                camera.world_to_screen((self.center.x, self.center.y)),
+                camera.world_to_screen((tip.x, tip.y)),
+                1,
+            )
+        

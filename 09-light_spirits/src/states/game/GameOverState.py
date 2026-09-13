@@ -20,6 +20,7 @@ from gale.state import BaseState
 from gale.text import render_text
 
 import settings
+from actions import CONFIRM
 
 
 class GameOverState(BaseState):
@@ -30,7 +31,7 @@ class GameOverState(BaseState):
         self.veil.fill((0, 0, 0, 170))
 
     def on_input(self, input_id: str, input_data: Any) -> None:
-        if input_id == "confirm" and input_data.pressed:
+        if input_id == CONFIRM and input_data.pressed:
             # Pops this state and the run underneath it, leaving the
             # title screen that was there before them.
             self.state_machine.pop()

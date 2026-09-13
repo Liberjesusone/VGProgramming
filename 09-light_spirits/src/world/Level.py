@@ -16,7 +16,7 @@ The layout is meant to be the same every time the game runs, the way a
 hand-designed level would be, so generation is seeded (see MAP_SEED) and
 uses its own random.Random instead of the global random module. Using
 the global module here would have seeded every *other* random roll in
-the game too -- enemy AI, loot, damage -- tying all of it to the order
+the game too, enemy AI, loot, damage, tying all of it to the order
 level generation happens in and making bugs elsewhere depend on level
 layout in ways that would be very hard to trace back.
 """
@@ -35,13 +35,12 @@ from src.world.Prop import Prop
 MAP_COLS = 60
 MAP_ROWS = 40
 
-# The material the whole floor starts as, before patches of the others
-# are laid over it.
+# The material the whole floor starts as, before patches of the others are laid over it.
 BASE_MATERIAL = "weathered_cracked_stone_slabs"
 
-# Patches of a second material, so the ground is not one flat surface.
-# Each is a rough blob rather than a rectangle, which reads as wear
-# rather than as a tiled area.
+""" Patches of a second material, so the ground is not one flat surface.
+Each is a rough blob rather than a rectangle, which reads as wear
+rather than as a tiled area. """
 NUM_PATCHES = 14
 PATCH_MIN_RADIUS = 3
 PATCH_MAX_RADIUS = 7
@@ -63,9 +62,8 @@ MIN_PROP_GAP = 26
 
 class Level:
     def __init__(self) -> None:
-        # Own instance, not the global random module -- see the module
-        # docstring for why. Every random call this class makes goes
-        # through it.
+        """ Own instance, not the global random module, see the module docstring 
+        for why. Every random call this class makes goes through it. """
         self._rng = random.Random(MAP_SEED)
 
         self.tilemap = TileMap(
@@ -79,6 +77,9 @@ class Level:
 
         self.props: List[Prop] = []
         self._place_props()
+
+        # Arrows currently in flight. this list changes every frame, see update()
+        self.projectiles: List[Any] = []
 
     # ------------------------------------------------------------
     # geometry
@@ -119,6 +120,31 @@ class Level:
 
         return any(prop.solid_rect.colliderect(rect) for prop in self.props)
 
+    def update(self, dt: float) -> None:
+        """ Advances every arrow currently in flight, and drops whichever
+        ones are done, either they hit something or they ran out of
+        range, both of which set an arrow's own .dead.
+
+        The collision check against getattr(self, "entities", []) is
+        currently a loop over nothing: there are no enemies yet (a later
+        milestone). Written the way it will actually run once that list
+        exists, the same reasoning PlayerAttackState's own melee hit
+        test already follows. """
+        
+        for arrow in list(self.projectiles):
+            arrow.update(dt)
+
+            for entity in getattr(self, "entities", []):
+                if arrow.dead:
+                    break
+
+                if entity.feet_rect.collidepoint(arrow.x, arrow.y):
+                    entity.damage(arrow.damage)
+                    arrow.dead = True
+
+            if arrow.dead:
+                self.projectiles.remove(arrow)
+
     # ------------------------------------------------------------
     # generation
     # ------------------------------------------------------------
@@ -146,10 +172,9 @@ class Level:
 
                     distance = ((row - centre_row) ** 2 + (col - centre_col) ** 2) ** 0.5
 
-                    # A soft edge rather than a circle: the closer to the
-                    # rim, the less likely the tile is replaced, which
-                    # frays the boundary into something that reads as
-                    # worn ground.
+                    """ A soft edge rather than a circle: the closer to the
+                    rim, the less likely the tile is replaced, which frays 
+                    the boundary into something that reads as worn ground. """
                     if distance > radius or self._rng.random() < distance / radius:
                         continue
 
@@ -210,6 +235,6 @@ class Level:
         Sorting by sort_y, the y of each thing's feet, is the whole trick
         behind walking behind a pillar: whoever is lower on the screen is
         nearer the camera, so it is drawn last and covers what is above
-        it. Props and entities share the same anchor precisely so they
-        can go into one list together. """
-        return sorted(self.props + extra, key=lambda thing: thing.sort_y)
+        it. Props, entities and projectiles all share the same anchor
+        precisely so they can go into one list together. """
+        return sorted(self.props + self.projectiles + extra, key=lambda thing: thing.sort_y)
