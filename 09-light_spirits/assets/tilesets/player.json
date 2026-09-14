@@ -1,0 +1,325 @@
+{
+ "tile_width": 96,
+ "tile_height": 64,
+ "columns": 4,
+ "regions": {
+  "archer_bow_idle_down": [
+   31,
+   0,
+   34,
+   64
+  ],
+  "archer_bow_idle_up": [
+   128,
+   0,
+   31,
+   64
+  ],
+  "archer_bow_idle_left": [
+   222,
+   0,
+   35,
+   64
+  ],
+  "archer_bow_idle_right": [
+   318,
+   0,
+   35,
+   64
+  ],
+  "archer_bow_walk_down": [
+   30,
+   64,
+   35,
+   64
+  ],
+  "archer_bow_walk_up": [
+   129,
+   64,
+   30,
+   64
+  ],
+  "archer_bow_walk_left": [
+   221,
+   64,
+   37,
+   64
+  ],
+  "archer_bow_walk_right": [
+   317,
+   64,
+   37,
+   64
+  ],
+  "archer_bow_charge1_down": [
+   32,
+   128,
+   31,
+   64
+  ],
+  "archer_bow_charge1_up": [
+   128,
+   128,
+   31,
+   64
+  ],
+  "archer_bow_charge1_left": [
+   221,
+   128,
+   37,
+   64
+  ],
+  "archer_bow_charge1_right": [
+   317,
+   128,
+   37,
+   64
+  ],
+  "archer_bow_charge2_down": [
+   34,
+   192,
+   27,
+   64
+  ],
+  "archer_bow_charge2_up": [
+   133,
+   192,
+   21,
+   64
+  ],
+  "archer_bow_charge2_left": [
+   218,
+   192,
+   44,
+   64
+  ],
+  "archer_bow_charge2_right": [
+   314,
+   192,
+   44,
+   64
+  ],
+  "archer_bow_release_down": [
+   32,
+   256,
+   32,
+   64
+  ],
+  "archer_bow_release_up": [
+   132,
+   256,
+   23,
+   64
+  ],
+  "archer_bow_release_left": [
+   206,
+   256,
+   67,
+   64
+  ],
+  "archer_bow_release_right": [
+   302,
+   256,
+   67,
+   64
+  ],
+  "archer_sword_idle_down": [
+   34,
+   320,
+   28,
+   64
+  ],
+  "archer_sword_idle_up": [
+   126,
+   320,
+   36,
+   64
+  ],
+  "archer_sword_idle_left": [
+   222,
+   320,
+   35,
+   64
+  ],
+  "archer_sword_idle_right": [
+   318,
+   320,
+   35,
+   64
+  ],
+  "archer_sword_walk_down": [
+   34,
+   384,
+   28,
+   64
+  ],
+  "archer_sword_walk_up": [
+   130,
+   384,
+   28,
+   64
+  ],
+  "archer_sword_walk_left": [
+   221,
+   384,
+   37,
+   64
+  ],
+  "archer_sword_walk_right": [
+   317,
+   384,
+   37,
+   64
+  ],
+  "archer_sword_charge1_down": [
+   26,
+   448,
+   44,
+   64
+  ],
+  "archer_sword_charge1_up": [
+   122,
+   448,
+   43,
+   64
+  ],
+  "archer_sword_charge1_left": [
+   217,
+   448,
+   46,
+   64
+  ],
+  "archer_sword_charge1_right": [
+   313,
+   448,
+   46,
+   64
+  ],
+  "archer_sword_charge2_down": [
+   31,
+   512,
+   34,
+   64
+  ],
+  "archer_sword_charge2_up": [
+   125,
+   512,
+   37,
+   64
+  ],
+  "archer_sword_charge2_left": [
+   221,
+   512,
+   38,
+   64
+  ],
+  "archer_sword_charge2_right": [
+   317,
+   512,
+   38,
+   64
+  ],
+  "archer_sword_attack_down": [
+   21,
+   576,
+   53,
+   64
+  ],
+  "archer_sword_attack_up": [
+   112,
+   576,
+   64,
+   64
+  ],
+  "archer_sword_attack_left": [
+   200,
+   576,
+   80,
+   64
+  ],
+  "archer_sword_attack_right": [
+   296,
+   576,
+   80,
+   64
+  ],
+  "archer_roll1_down": [
+   20,
+   640,
+   56,
+   64
+  ],
+  "archer_roll1_up": [
+   119,
+   640,
+   49,
+   64
+  ],
+  "archer_roll1_left": [
+   208,
+   640,
+   63,
+   64
+  ],
+  "archer_roll1_right": [
+   304,
+   640,
+   63,
+   64
+  ],
+  "archer_roll2_down": [
+   13,
+   704,
+   70,
+   64
+  ],
+  "archer_roll2_up": [
+   107,
+   704,
+   73,
+   64
+  ],
+  "archer_roll2_left": [
+   207,
+   704,
+   66,
+   64
+  ],
+  "archer_roll2_right": [
+   303,
+   704,
+   66,
+   64
+  ],
+  "archer_roll3_down": [
+   24,
+   768,
+   48,
+   64
+  ],
+  "archer_roll3_up": [
+   122,
+   768,
+   43,
+   64
+  ],
+  "archer_roll3_left": [
+   212,
+   768,
+   56,
+   64
+  ],
+  "archer_roll3_right": [
+   308,
+   768,
+   56,
+   64
+  ],
+  "archer_resting_down": [
+   32,
+   852,
+   32,
+   44
+  ]
+ }
+}

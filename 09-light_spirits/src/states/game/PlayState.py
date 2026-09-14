@@ -57,7 +57,7 @@ class PlayState(BaseState):
         the one that could someday swap it (a boss-room camera cut, a
         zoom effect) out from under it. """ 
         self.player.update(dt, self.camera)
-        self.level.update(dt)
+        self.level.update(dt, self.player)
 
         if self.player.dead:
             self._on_game_over()
@@ -83,6 +83,7 @@ class PlayState(BaseState):
         surface.fill(settings.COLOR_BACKGROUND)
 
         self.level.render_floor(surface, self.camera)
+        self.level.render_telegraphs(surface, self.camera)
 
         """ One pass over props and entities together, back to front. This
         is what puts the player behind a pillar when they are above it
@@ -115,9 +116,10 @@ class PlayState(BaseState):
             )
 
         info = (
-            f"jugador ({self.player.x:.0f}, {self.player.y:.0f})   "
+            f"player ({self.player.x:.0f}, {self.player.y:.0f})   "
             f"props {len(self.level.props)}   "
-            f"mapa {self.level.pixel_width}x{self.level.pixel_height}"
+            f"enemies {len(self.level.entities)}   "
+            f"map {self.level.pixel_width}x{self.level.pixel_height}"
         )
         render_text(
             surface,

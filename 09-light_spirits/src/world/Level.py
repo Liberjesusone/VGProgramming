@@ -8,9 +8,9 @@ This file contains the class Level: the floor, the scenery standing on
 it, and the front-to-back ordering that makes the two read as one scene.
 
 The map is generated in code for now. A Tiled map will replace
-_build_floor and _place_props later; nothing else in the file has to
-change when it does, because everything downstream only ever reads the
-tilemap and the prop list.
+_build_floor, _place_props and _place_enemies later; nothing else in
+the file has to change when it does, because everything downstream
+only ever reads the tilemap, the prop list and the entity list.
 
 The layout is meant to be the same every time the game runs, the way a
 hand-designed level would be, so generation is seeded (see MAP_SEED) and
@@ -30,6 +30,7 @@ from gale.tilemap import TileMap
 
 import settings
 from src.definitions.props import PROP_DEFS
+from src.entity.Enemy import Enemy
 from src.world.Prop import Prop
 
 MAP_COLS = 60
@@ -46,6 +47,17 @@ PATCH_MIN_RADIUS = 3
 PATCH_MAX_RADIUS = 7
 
 NUM_PROPS = 46
+
+""" Interim, procedural stand-in for hand-placed spawns: once the map
+moves to Tiled, this becomes reading spawn points from an object layer
+instead, the same swap the module docstring already describes for
+_build_floor and _place_props. One enemy per entry, in this order. """
+ENEMY_SPAWNS = ["zombie", "zombie", "witch", "zombie", "golem", "witch"]
+
+""" No enemy spawns this close to the map's centre, where the player
+always starts (see spawn_point), so a run never opens with a guard
+already standing on top of them. """
+ENEMY_SPAWN_EXCLUSION_RADIUS = 160
 
 # Arbitrary. Change this to get a different fixed layout; the layout
 # stays whatever this value produces until it is changed again.
@@ -78,8 +90,14 @@ class Level:
         self.props: List[Prop] = []
         self._place_props()
 
-        # Arrows currently in flight. this list changes every frame, see update()
+        self.entities: List[Enemy] = []
+        self._place_enemies()
+
+        # The player's arrows currently in flight, they only ever hit enemies.
         self.projectiles: List[Any] = []
+
+        # Enemy attacks still in flight (the witch's AreaShot), they only ever hit the player.
+        self.hazards: List[Any] = []
 
     # ------------------------------------------------------------
     # geometry
@@ -120,30 +138,39 @@ class Level:
 
         return any(prop.solid_rect.colliderect(rect) for prop in self.props)
 
-    def update(self, dt: float) -> None:
-        """ Advances every arrow currently in flight, and drops whichever
-        ones are done, either they hit something or they ran out of
-        range, both of which set an arrow's own .dead.
 
-        The collision check against getattr(self, "entities", []) is
-        currently a loop over nothing: there are no enemies yet (a later
-        milestone). Written the way it will actually run once that list
-        exists, the same reasoning PlayerAttackState's own melee hit
-        test already follows. """
-        
+    # ------------------------------------------------------------
+    # Update 
+    # ------------------------------------------------------------
+    def update(self, dt: float, player: Any) -> None:
+        """ Advances the player's arrows against enemies' bodies, every
+        enemy against the player, and every enemy hazard until it lands,
+        then drops whatever is done: arrows that hit or ran out of range,
+        dead enemies, and hazards that already landed. """
         for arrow in list(self.projectiles):
             arrow.update(dt)
 
-            for entity in getattr(self, "entities", []):
+            for entity in self.entities:
                 if arrow.dead:
                     break
 
-                if entity.feet_rect.collidepoint(arrow.x, arrow.y):
+                if entity.hurt_rect.collidepoint(arrow.x, arrow.y):
                     entity.damage(arrow.damage)
+                    entity.change_state("chase")
                     arrow.dead = True
 
             if arrow.dead:
                 self.projectiles.remove(arrow)
+
+        for entity in self.entities:
+            entity.update(dt, player)
+
+        for hazard in self.hazards:
+            hazard.update(dt, player)
+
+        self.entities = [entity for entity in self.entities if not entity.dead]
+        self.hazards = [hazard for hazard in self.hazards if not hazard.dead]
+
 
     # ------------------------------------------------------------
     # generation
@@ -223,18 +250,55 @@ class Level:
 
             self.props.append(candidate)
 
+    def _place_enemies(self) -> None:
+        margin = EDGE_MARGIN_TILES * settings.TILE_SIZE
+        centre = pygame.Vector2(self.pixel_width / 2, self.pixel_height / 2)
+        attempts = 0
+
+        while len(self.entities) < len(ENEMY_SPAWNS) and attempts < len(ENEMY_SPAWNS) * 60:
+            attempts += 1
+
+            x = self._rng.uniform(margin, self.pixel_width - margin)
+            y = self._rng.uniform(margin + 100, self.pixel_height - margin)
+
+            if (pygame.Vector2(x, y) - centre).length() < ENEMY_SPAWN_EXCLUSION_RADIUS:
+                continue
+
+            candidate = Enemy(ENEMY_SPAWNS[len(self.entities)], x, y, self)
+
+            if self.blocked(candidate.feet_rect):
+                continue
+
+            self.entities.append(candidate)
+
+
     # ------------------------------------------------------------
     # rendering
     # ------------------------------------------------------------
     def render_floor(self, surface: pygame.Surface, camera: Any) -> None:
         self.tilemap.render(surface, camera)
 
+    def render_telegraphs(self, surface: pygame.Surface, camera: Any) -> None:
+        """ Every enemy attack warning, drawn flat on the ground right after
+        the floor and before anything standing on it, so a red cone or
+        circle never covers a sprite, whoever is standing inside it. """
+        for entity in self.entities:
+            entity.render_telegraph(surface, camera)
+
+        for hazard in self.hazards:
+            hazard.render_telegraph(surface, camera)
+
     def drawables(self, extra: List[Any]) -> List[Any]:
         """ Everything standing on the floor, ordered back to front.
+
+        Normally the extra parametter is just the player, send by the PlayState
 
         Sorting by sort_y, the y of each thing's feet, is the whole trick
         behind walking behind a pillar: whoever is lower on the screen is
         nearer the camera, so it is drawn last and covers what is above
         it. Props, entities and projectiles all share the same anchor
         precisely so they can go into one list together. """
-        return sorted(self.props + self.projectiles + extra, key=lambda thing: thing.sort_y)
+        return sorted(
+            self.props + self.projectiles + self.hazards + self.entities + extra,
+            key=lambda thing: thing.sort_y,
+        )

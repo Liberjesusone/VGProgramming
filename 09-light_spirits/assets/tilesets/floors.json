@@ -1,0 +1,85 @@
+{
+ "tile_width": 32,
+ "tile_height": 32,
+ "columns": 32,
+ "regions": {
+  "floor_weathered_cracked_stone_slabs": [
+   0,
+   0,
+   256,
+   256
+  ],
+  "floor_damp_mossy_cobblestone": [
+   256,
+   0,
+   256,
+   256
+  ],
+  "floor_wet_dark_packed_earth_with_small_pebbles": [
+   512,
+   0,
+   256,
+   256
+  ],
+  "floor_rotten_wooden_planks": [
+   768,
+   0,
+   256,
+   256
+  ],
+  "floor_grey_ash_and_fine_gravel": [
+   0,
+   256,
+   256,
+   256
+  ],
+  "floor_royal_marble": [
+   256,
+   256,
+   256,
+   256
+  ],
+  "floor_black_marble": [
+   512,
+   256,
+   256,
+   256
+  ],
+  "floor_cracked_marble": [
+   768,
+   256,
+   256,
+   256
+  ],
+  "floor_calm_grass": [
+   0,
+   512,
+   256,
+   256
+  ],
+  "floor_grass_stepping_stones": [
+   256,
+   512,
+   256,
+   256
+  ],
+  "floor_dark_shrine_flagstones": [
+   512,
+   512,
+   256,
+   256
+  ],
+  "floor_black_ash_gravel": [
+   768,
+   512,
+   256,
+   256
+  ],
+  "floor_cracked_temple_stone": [
+   0,
+   768,
+   256,
+   256
+  ]
+ }
+}

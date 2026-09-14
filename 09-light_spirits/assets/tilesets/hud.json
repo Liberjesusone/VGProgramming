@@ -1,0 +1,49 @@
+{
+ "tile_width": 320,
+ "tile_height": 64,
+ "columns": 7,
+ "regions": {
+  "hud_slot": [
+   141,
+   24,
+   38,
+   40
+  ],
+  "hud_flask_full": [
+   469,
+   34,
+   21,
+   30
+  ],
+  "hud_flask_empty": [
+   789,
+   34,
+   21,
+   30
+  ],
+  "hud_bow": [
+   1106,
+   34,
+   28,
+   30
+  ],
+  "hud_sword": [
+   1425,
+   34,
+   30,
+   30
+  ],
+  "hud_quiver": [
+   1746,
+   34,
+   28,
+   30
+  ],
+  "bonfire_banner": [
+   1927,
+   16,
+   305,
+   48
+  ]
+ }
+}

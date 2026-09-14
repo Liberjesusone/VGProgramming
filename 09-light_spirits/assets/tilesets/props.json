@@ -1,0 +1,79 @@
+{
+ "tile_width": 160,
+ "tile_height": 192,
+ "columns": 6,
+ "regions": {
+  "broken_stone_pillar": [
+   51,
+   80,
+   57,
+   112
+  ],
+  "dead_leafless_tree": [
+   178,
+   32,
+   123,
+   160
+  ],
+  "mossy_boulder": [
+   368,
+   128,
+   63,
+   64
+  ],
+  "rusted_iron_brazier": [
+   524,
+   112,
+   71,
+   80
+  ],
+  "stone_sarcophagus": [
+   674,
+   104,
+   91,
+   88
+  ],
+  "broken_torii_gate": [
+   803,
+   16,
+   154,
+   176
+  ],
+  "stone_lantern": [
+   65,
+   312,
+   29,
+   72
+  ],
+  "dead_black_pine": [
+   189,
+   224,
+   101,
+   160
+  ],
+  "katana_grave": [
+   383,
+   328,
+   33,
+   56
+  ],
+  "tattered_war_banner": [
+   542,
+   256,
+   35,
+   128
+  ],
+  "fallen_shrine_bell": [
+   685,
+   320,
+   69,
+   64
+  ],
+  "armor_remains": [
+   850,
+   336,
+   59,
+   48
+  ]
+ }
+}

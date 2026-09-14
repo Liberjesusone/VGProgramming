@@ -1,0 +1,4 @@
+# Full resolution originals from the image generator. Only
+# tools/build_assets.py reads them, and everything the game needs is
+# already packed into assets/tilesets.
+assets/source/

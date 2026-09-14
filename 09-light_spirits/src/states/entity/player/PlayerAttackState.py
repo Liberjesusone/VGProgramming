@@ -68,19 +68,15 @@ class PlayerAttackState(PlayerBaseState):
         # Stamina waste
         player.current_stamina -= MELEE_STAMINA_COST if charge < self.time_in_charge1_percent  else MELEE_STAMINA_HIGH_COST
 
-        """ Currently a loop over an empty sequence, Level has no
-        entities to hit until enemies exist, a later milestone. Written
-        the way it will actually run once that list is real, rather
-        than bolted on afterwards. """
-        for entity in getattr(player.level, "entities", []):
+        for entity in player.level.entities:
             if entity in already_hit:
                 continue
 
-            target = pygame.Vector2(entity.x, entity.y)
-
+            """ The middle of the body, matching the cone's own origin at the player's middle, 
+            so a tall enemy is not missed just because its feet sit below the swing. """
             if contains_point(origin, player.aim_direction,
-                              self.half_angle, 
-                              self.range, target):
+                              self.half_angle,
+                              self.range, entity.center):
                 already_hit.add(entity)
                 entity.damage(self.damage)
 

@@ -1,0 +1,31 @@
+{
+ "tile_width": 32,
+ "tile_height": 32,
+ "columns": 32,
+ "regions": {
+  "fence_wood_front": [
+   0,
+   0,
+   544,
+   64
+  ],
+  "fence_wood_side": [
+   544,
+   0,
+   32,
+   576
+  ],
+  "fence_iron_front": [
+   0,
+   576,
+   480,
+   64
+  ],
+  "fence_iron_side": [
+   480,
+   576,
+   32,
+   1024
+  ]
+ }
+}

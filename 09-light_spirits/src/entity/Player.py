@@ -23,7 +23,7 @@ which of the equipped weapon's own texture keys is currently showing,
 and is all the states ever have to set to change what is on screen.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import pygame
 
@@ -31,6 +31,8 @@ from gale.state import StateMachine
 
 import settings
 from actions import ATTACK, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT, MOVE_UP, ROLL, SWITCH_WEAPON
+from src.combat.visuals import flashed
+from src.definitions.combat import HIT_FLASH_TIME
 from src.definitions.weapons import WEAPON_DEFS, WEAPON_ORDER
 from src.states.entity import player as player_states
 
@@ -60,6 +62,13 @@ HUD_BAR_TRACK_COLOR = (32, 36, 32)
 HUD_BAR_BORDER_COLOR = (70, 92, 74)
 HUD_BAR_FILL_COLOR = (94, 148, 104)
 
+MAX_HEALTH = 10
+
+# The health bar sits right under the stamina bar, same size and track.
+HUD_BAR_GAP = 3
+HUD_HEALTH_BORDER_COLOR = (98, 50, 48)
+HUD_HEALTH_FILL_COLOR = (168, 62, 58)
+
 """ The roll's own texture keys, read directly instead of through
 weapon_def like every other pose: a roll is not part of either weapon's
 own set (see settings.CHARACTER_POSE_SETS), so there is nothing to look
@@ -82,7 +91,7 @@ class Player:
         # every one of them needing it threaded through their own constructor.
         self.level = level
 
-        self.health: int = 6
+        self.health: int = MAX_HEALTH
 
         self.equipped_weapon: str = "bow"
 
@@ -125,9 +134,8 @@ class Player:
         so a roll is never available mid-swing or mid-roll. """
         self.roll_requested: bool = False
 
-        """ True for a duration of PlayerRollState, read by
-        whatever eventually resolves damage against the player (there
-        is no such code yet; enemies are a later milestone). """
+        # True for a duration of PlayerRollState, read by damage() below, the one place 
+        # anything that hits the player (an Enemy, for now) actually goes through.
         self.invulnerable: bool = False
 
         """ 0..1, how much of the equipped weapon's own charge_time has
@@ -139,6 +147,12 @@ class Player:
         # Pure render offset, see PlayerWalkState, never touched by
         # anything that cares about the player's actual position.
         self.bob_offset: float = 0.0
+
+        # Same kind of render only offset, horizontal, see PlayerStunState.
+        self.stagger_offset: float = 0.0
+
+        # Seconds left of the tint shown right after taking damage.
+        self.hit_flash: float = 0.0
 
         """ Sized off the feet's own footprint, not off the sprite's
         silhouette: a weapon held out to one side makes the *picture*
@@ -155,6 +169,7 @@ class Player:
                 "walk": lambda sm, p=self: player_states.PlayerWalkState(p, sm),
                 "attack": lambda sm, p=self: player_states.PlayerAttackState(p, sm),
                 "roll": lambda sm, p=self: player_states.PlayerRollState(p, sm),
+                "stun": lambda sm, p=self: player_states.PlayerStunState(p, sm),
             }
         )
         self.change_state("idle")
@@ -168,6 +183,24 @@ class Player:
     @property
     def dead(self) -> bool:
         return self.health <= 0
+
+    def damage(self, amount: int, stun: Optional[str] = None, source: Any = None) -> None:
+        """ The one way anything hurts the player. Ignored entirely while
+        rolling, so no attacker ever has to check invulnerable itself.
+
+        stun is "light", "heavy" or None, see combat.STUNS, and source is
+        the world point the hit came from, which the stagger pushes the
+        player away from. """
+        if self.invulnerable:
+            return
+
+        self.health = max(0, self.health - amount)
+        self.hit_flash = HIT_FLASH_TIME
+
+        if stun is not None and not self.dead:
+            current = self.state_machine.current
+            carried = current.remaining if isinstance(current, player_states.PlayerStunState) else 0.0
+            self.change_state("stun", stun, source if source is not None else self.center, carried)
 
     @property
     def sort_y(self) -> float:
@@ -261,7 +294,10 @@ class Player:
         return (
             self.charge == 0.0
             and not self.attack_held
-            and not isinstance(self.state_machine.current, player_states.PlayerAttackState)
+            and not isinstance(
+                self.state_machine.current,
+                (player_states.PlayerAttackState, player_states.PlayerStunState),
+            )
         )
 
     def switch_weapon(self) -> None:
@@ -306,6 +342,7 @@ class Player:
     # ------------------------------------------------------------
     def update(self, dt: float, camera: Any) -> None:
         self.current_stamina = min(self.current_stamina + dt, MAX_STAMINA)
+        self.hit_flash = max(0.0, self.hit_flash - dt)
         self._update_aim(camera)
         self.state_machine.update(dt)
 
@@ -343,27 +380,44 @@ class Player:
         )
         surface.blit(self._shadow, camera.apply(shadow_rect))
 
-        sprite_rect = self.image_rect.move(0, round(self.bob_offset))
-        surface.blit(self.sprite, camera.apply(sprite_rect))
+        # We render the bob_offset of walking and stagger_offset of stun, and aslo the flasehd
+        sprite_rect = self.image_rect.move(round(self.stagger_offset), round(self.bob_offset))
+        sprite = flashed(self.sprite) if self.hit_flash > 0 else self.sprite
+        surface.blit(sprite, camera.apply(sprite_rect))
         
 
     def render_hud(self, surface: pygame.Surface) -> None:
-        """ The attack recovery bar. Drawn directly in virtual-surface
-        coordinates, so it must never scroll or pan with the camera. """
-        fraction = min(1.0, self.current_stamina / MAX_STAMINA)
+        """ The stamina bar, with the health bar right under it. Drawn
+        directly in virtual-surface coordinates, so neither ever scrolls
+        or pans with the camera. """
+        stamina_top = settings.VIRTUAL_HEIGHT - HUD_BAR_BOTTOM_MARGIN - HUD_BAR_HEIGHT
+
+        self._render_bar(
+            surface, stamina_top, self.current_stamina / MAX_STAMINA,
+            HUD_BAR_FILL_COLOR, HUD_BAR_BORDER_COLOR,
+        )
+        self._render_bar(
+            surface, stamina_top + HUD_BAR_HEIGHT + HUD_BAR_GAP, self.health / MAX_HEALTH,
+            HUD_HEALTH_FILL_COLOR, HUD_HEALTH_BORDER_COLOR,
+        )
+
+    def _render_bar(
+        self, surface: pygame.Surface, top: int, fraction: float,
+        fill_color: tuple, border_color: tuple,
+    ) -> None:
+        # Clamped both ways: stamina can dip below zero after an action
+        # that costs more than what was left.
+        fraction = max(0.0, min(1.0, fraction))
 
         track = pygame.Rect(
-            (settings.VIRTUAL_WIDTH - HUD_BAR_WIDTH) // 2,
-            settings.VIRTUAL_HEIGHT - HUD_BAR_BOTTOM_MARGIN - HUD_BAR_HEIGHT,
-            HUD_BAR_WIDTH,
-            HUD_BAR_HEIGHT,
+            (settings.VIRTUAL_WIDTH - HUD_BAR_WIDTH) // 2, top, HUD_BAR_WIDTH, HUD_BAR_HEIGHT
         )
         pygame.draw.rect(surface, HUD_BAR_TRACK_COLOR, track)
 
         fill = track.copy()
         fill.width = round(HUD_BAR_WIDTH * fraction)
-        pygame.draw.rect(surface, HUD_BAR_FILL_COLOR, fill)
-        pygame.draw.rect(surface, HUD_BAR_BORDER_COLOR, track, 1)
+        pygame.draw.rect(surface, fill_color, fill)
+        pygame.draw.rect(surface, border_color, track, 1)
 
     def render_debug(self, surface: pygame.Surface, camera: Any) -> None:
         pygame.draw.rect(surface, (90, 220, 140), camera.apply(self.image_rect), 1)

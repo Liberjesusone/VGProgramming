@@ -6,7 +6,7 @@ Final project for ISPPV1 (Video Game Programming I), Universidad de Los Andes.
 
 ## Status
 
-Milestone 2. An archer with a bow and a sword, each with its own charged attack aimed at the mouse, a dodge roll with invulnerability frames, and a shared stamina bar gating both. Runs borderless fullscreen with the mouse confined to the window. See `CHANGELOG.md` for progress by milestone.
+Milestone 3. An archer with a bow and a sword, each with its own charged attack aimed at the mouse, a dodge roll with invulnerability frames, and a shared stamina bar gating both. Three enemy kinds (zombie, witch, golem) guard the ruins, each with a single unpredictable charged attack and a stun that can chain if the player isn't careful. Runs borderless fullscreen with the mouse confined to the window. The final boss's art exists but is not wired into gameplay yet. See `CHANGELOG.md` for progress by milestone.
 
 ## Running it
 
@@ -30,9 +30,19 @@ Requires `gale-engine` (see the repo root's `requirements.txt`). `numpy` is also
 
 ## Assets
 
-Floor, prop and character art is AI-generated, then converted into game-ready tiles and sprites by `tools/build_assets.py` (raw sources in `assets/source/`, output in `assets/graphics/`). See that file's docstring for the conversion pipeline and why it works the way it does.
+All art is AI-generated, then packed by `tools/build_assets.py` into one tileset per category in `assets/tilesets/` (a PNG plus a JSON index naming every region), which both the game and Tiled load. The full-resolution originals live in `assets/source/`, kept out of the repository for their size, so the script only runs on the machine that has them. See that file's docstring for the conversion pipeline and why it works the way it does.
+
+## Map (Tiled)
+
+The current map is still generated in code (`src/world/Level.py`), on a fixed seed. Milestone 4 replaces it with a map authored in Tiled, painted with the same tilesets `tools/build_assets.py` already produces. Layer names, object properties and export settings are all fixed there so a map built there loads the same way.
 
 ## Screenshots
+
+### Milestone 3
+
+![Golem attacking the player](milestones_png/milestone3/golem_attack.png)
+![Zombie attacking the player](milestones_png/milestone3/zombie_attack.png)
+![Witch attacking the player, while the others enemies chases him](milestones_png/milestone3/witch_archer_attack.png)
 
 ### Milestone 2
 

@@ -1,0 +1,367 @@
+{
+ "tile_width": 128,
+ "tile_height": 160,
+ "columns": 4,
+ "regions": {
+  "enemy_zombie_idle_down": [
+   48,
+   96,
+   31,
+   64
+  ],
+  "enemy_zombie_idle_up": [
+   176,
+   94,
+   32,
+   66
+  ],
+  "enemy_zombie_idle_left": [
+   307,
+   96,
+   25,
+   64
+  ],
+  "enemy_zombie_idle_right": [
+   435,
+   96,
+   25,
+   64
+  ],
+  "enemy_zombie_walk_down": [
+   47,
+   255,
+   34,
+   65
+  ],
+  "enemy_zombie_walk_up": [
+   176,
+   255,
+   31,
+   65
+  ],
+  "enemy_zombie_walk_left": [
+   300,
+   258,
+   40,
+   62
+  ],
+  "enemy_zombie_walk_right": [
+   428,
+   258,
+   40,
+   62
+  ],
+  "enemy_zombie_charge1_down": [
+   39,
+   422,
+   50,
+   58
+  ],
+  "enemy_zombie_charge1_up": [
+   168,
+   419,
+   48,
+   61
+  ],
+  "enemy_zombie_charge1_left": [
+   295,
+   422,
+   49,
+   58
+  ],
+  "enemy_zombie_charge1_right": [
+   423,
+   422,
+   49,
+   58
+  ],
+  "enemy_zombie_charge2_down": [
+   45,
+   557,
+   38,
+   83
+  ],
+  "enemy_zombie_charge2_up": [
+   174,
+   560,
+   35,
+   80
+  ],
+  "enemy_zombie_charge2_left": [
+   300,
+   563,
+   39,
+   77
+  ],
+  "enemy_zombie_charge2_right": [
+   428,
+   563,
+   39,
+   77
+  ],
+  "enemy_zombie_attack_down": [
+   19,
+   745,
+   90,
+   55
+  ],
+  "enemy_zombie_attack_up": [
+   147,
+   742,
+   89,
+   58
+  ],
+  "enemy_zombie_attack_left": [
+   272,
+   746,
+   95,
+   54
+  ],
+  "enemy_zombie_attack_right": [
+   400,
+   746,
+   95,
+   54
+  ],
+  "enemy_witch_idle_down": [
+   44,
+   896,
+   39,
+   64
+  ],
+  "enemy_witch_idle_up": [
+   173,
+   894,
+   37,
+   66
+  ],
+  "enemy_witch_idle_left": [
+   301,
+   898,
+   38,
+   62
+  ],
+  "enemy_witch_idle_right": [
+   429,
+   898,
+   38,
+   62
+  ],
+  "enemy_witch_walk_down": [
+   45,
+   1055,
+   37,
+   65
+  ],
+  "enemy_witch_walk_up": [
+   174,
+   1053,
+   36,
+   67
+  ],
+  "enemy_witch_walk_left": [
+   299,
+   1058,
+   42,
+   62
+  ],
+  "enemy_witch_walk_right": [
+   427,
+   1058,
+   42,
+   62
+  ],
+  "enemy_witch_charge1_down": [
+   40,
+   1208,
+   48,
+   72
+  ],
+  "enemy_witch_charge1_up": [
+   169,
+   1209,
+   45,
+   71
+  ],
+  "enemy_witch_charge1_left": [
+   295,
+   1212,
+   50,
+   68
+  ],
+  "enemy_witch_charge1_right": [
+   423,
+   1212,
+   50,
+   68
+  ],
+  "enemy_witch_charge2_down": [
+   42,
+   1354,
+   43,
+   86
+  ],
+  "enemy_witch_charge2_up": [
+   172,
+   1357,
+   39,
+   83
+  ],
+  "enemy_witch_charge2_left": [
+   301,
+   1361,
+   37,
+   79
+  ],
+  "enemy_witch_charge2_right": [
+   429,
+   1361,
+   37,
+   79
+  ],
+  "enemy_witch_attack_down": [
+   37,
+   1533,
+   54,
+   67
+  ],
+  "enemy_witch_attack_up": [
+   165,
+   1542,
+   54,
+   58
+  ],
+  "enemy_witch_attack_left": [
+   289,
+   1541,
+   61,
+   59
+  ],
+  "enemy_witch_attack_right": [
+   417,
+   1541,
+   61,
+   59
+  ],
+  "enemy_golem_idle_down": [
+   23,
+   1664,
+   82,
+   96
+  ],
+  "enemy_golem_idle_up": [
+   151,
+   1658,
+   82,
+   102
+  ],
+  "enemy_golem_idle_left": [
+   296,
+   1657,
+   48,
+   103
+  ],
+  "enemy_golem_idle_right": [
+   424,
+   1657,
+   48,
+   103
+  ],
+  "enemy_golem_walk_down": [
+   25,
+   1820,
+   78,
+   100
+  ],
+  "enemy_golem_walk_up": [
+   153,
+   1815,
+   78,
+   105
+  ],
+  "enemy_golem_walk_left": [
+   283,
+   1820,
+   73,
+   100
+  ],
+  "enemy_golem_walk_right": [
+   411,
+   1820,
+   73,
+   100
+  ],
+  "enemy_golem_charge1_down": [
+   22,
+   1989,
+   84,
+   91
+  ],
+  "enemy_golem_charge1_up": [
+   149,
+   1985,
+   86,
+   95
+  ],
+  "enemy_golem_charge1_left": [
+   281,
+   1986,
+   78,
+   94
+  ],
+  "enemy_golem_charge1_right": [
+   409,
+   1986,
+   78,
+   94
+  ],
+  "enemy_golem_charge2_down": [
+   23,
+   2110,
+   81,
+   130
+  ],
+  "enemy_golem_charge2_up": [
+   151,
+   2115,
+   82,
+   125
+  ],
+  "enemy_golem_charge2_left": [
+   290,
+   2111,
+   59,
+   129
+  ],
+  "enemy_golem_charge2_right": [
+   418,
+   2111,
+   59,
+   129
+  ],
+  "enemy_golem_attack_down": [
+   1,
+   2312,
+   125,
+   88
+  ],
+  "enemy_golem_attack_up": [
+   129,
+   2315,
+   126,
+   85
+  ],
+  "enemy_golem_attack_left": [
+   259,
+   2320,
+   121,
+   80
+  ],
+  "enemy_golem_attack_right": [
+   387,
+   2320,
+   121,
+   80
+  ]
+ }
+}

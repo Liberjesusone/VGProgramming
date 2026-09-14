@@ -8,7 +8,9 @@ Game settings: input bindings, the sizes everything else is measured
 against, and the loaded textures, tilesets and fonts.
 """
 
+import json
 import pathlib
+from typing import Dict
 
 import pygame
 
@@ -26,6 +28,7 @@ from actions import (
     ROLL,
     SWITCH_WEAPON,
 )
+
 
 # ------------------------------------------------------------
 # Input
@@ -52,6 +55,7 @@ input_handler.InputHandler.set_mouse_click_action(input_handler.MOUSE_BUTTON_1, 
 TITLE = "Light Spirits"
 
 BASE_DIR = pathlib.Path(__file__).parent
+
 
 # ------------------------------------------------------------
 # sizes
@@ -134,8 +138,44 @@ reading TEXTURES has to know that. """
 PLAYER_DIRECTIONS = ("down", "up", "left", "right")
 
 
-def _graphic(*parts: str) -> pygame.Surface:
-    return pygame.image.load(BASE_DIR.joinpath("assets", "graphics", *parts))
+# ------------------------------------------------------------
+# Tilesets
+# ------------------------------------------------------------
+""" Every texture in the game lives in a handful of tilesets, one per
+category, built by tools/build_assets.py: a PNG plus a JSON index naming
+the exact rect of every region inside it. The same PNGs are what Tiled
+paints the map with.
+
+TILESETS[tileset][region] is every region, sliced once here at startup.
+TEXTURES below keeps the keys the rest of the game has always used, so
+nothing outside this file knows the art ever came from a tileset. """
+TILESETS_DIR = BASE_DIR / "assets" / "tilesets"
+
+TILESET_NAMES = (
+    "floors", "walls", "fences", "forest", "rocks", "cliffs",
+    "player", "enemies", "bosses", "props", "decor", "bonfire", "hud",
+)
+
+
+def _load_tileset(name: str) -> Dict[str, pygame.Surface]:
+    """ Loads the tileset image, gets the json "regions" property
+    and iterates for all the regions names and 4 coords to create
+    the subimages of the tilesets; to create all the tiles"""
+    image_path = TILESETS_DIR / f"{name}.png"
+
+    if not image_path.exists():
+        return {}
+
+    image = pygame.image.load(image_path)
+
+    with open(TILESETS_DIR / f"{name}.json", encoding="utf-8") as index:
+        regions = json.load(index)["regions"]
+
+    return {region: image.subsurface(pygame.Rect(rect)) for region, rect in regions.items()}
+
+# For every tileset name, we load its dict. with the pose name and image
+TILESETS = {name: _load_tileset(name) for name in TILESET_NAMES}
+
 
 # ------------------------------------------------------------
 # Placeholder for images that hasn't been created yet
@@ -144,8 +184,8 @@ def _placeholder_character(label: str, width: int, height: int) -> pygame.Surfac
     """ Stand-in for a character pose that has not been generated yet. While 
     its own art was still being drawn: the game stays fully playable and 
     every pose is visibly testable in the meantime, and the moment 
-    tools/build_assets.py produces the real file, _character_graphic below 
-    picks it up on its own, nothing else in the project has to change. """
+    tools/build_assets.py adds the real pose to its tileset, _character_graphic
+    below picks it up on its own, nothing else in the project has to change. """
     surface = pygame.Surface((width, height), pygame.SRCALPHA)
     box = surface.get_rect()
     pygame.draw.rect(surface, (90, 70, 110, 210), box, border_radius=6)
@@ -160,32 +200,28 @@ def _placeholder_character(label: str, width: int, height: int) -> pygame.Surfac
 
 
 """ How big a placeholder pose reads as, in the absence of a real image to
-measure -- close enough to the real character's own proportions
+measure, close enough to the real character's own proportions
 (settings.PLAYER_HEIGHT tall) that nothing downstream notices which
 kind of surface it actually got. """
 _PLACEHOLDER_CHARACTER_SIZE = (40, 64)
 
 
-def _character_graphic(filename: str, label: str) -> pygame.Surface:
-    """ Loads a character pose if it has been generated and processed by
-    tools/build_assets.py, and falls back to a placeholder of the same
-    rough size while it has not been, unlike _graphic above, which is
-    only ever used for art that is already finished, so a missing file
-    there should keep failing loudly."""
-    path = BASE_DIR / "assets" / "graphics" / "characters" / filename
-
-    if path.exists():
-        return pygame.image.load(path)
-
-    return _placeholder_character(label, *_PLACEHOLDER_CHARACTER_SIZE)
-
+def _character_graphic(
+    tileset: str, region: str, label: str, size: tuple = _PLACEHOLDER_CHARACTER_SIZE
+) -> pygame.Surface:
+    """ A character pose from its tileset if it has been generated, and a
+    placeholder of the given size while it has not been. Floors and props
+    read their tilesets directly instead, since that art is finished and a
+    missing region there should keep failing loudly. """
+    surface = TILESETS[tileset].get(region)
+    return surface if surface is not None else _placeholder_character(label, *size)
 
 
 # ------------------------------------------------------------
 # Floor
 # ------------------------------------------------------------
 TEXTURES = {
-    f"floor-{name}": _graphic("tilesets", f"floor_{name}.png")
+    f"floor-{name}": TILESETS["floors"][f"floor_{name}"]
     for name in FLOOR_MATERIALS
 }
 
@@ -205,12 +241,14 @@ FLOOR_FIRST_GID = {
     name: tileset.first_gid for name, tileset in FLOOR_TILESETS.items()
 }
 
+
 # ------------------------------------------------------------
 # Props
 # ------------------------------------------------------------
 TEXTURES.update(
-    {f"prop-{name}": _graphic("props", f"{name}.png") for name in PROP_NAMES}
+    {f"prop-{name}": TILESETS["props"][name] for name in PROP_NAMES}
 )
+
 
 # ------------------------------------------------------------
 # Player
@@ -242,11 +280,39 @@ for _key_prefix, _file_prefix in CHARACTER_POSE_SETS:
     TEXTURES.update(
         {
             f"player-{_key_prefix}-{direction}": _character_graphic(
-                f"{_file_prefix}_{direction}.png", f"{_key_prefix}-{direction}"
+                "player", f"{_file_prefix}_{direction}", f"{_key_prefix}-{direction}"
             )
             for direction in PLAYER_DIRECTIONS
         }
     )
+
+
+# ------------------------------------------------------------
+# Enemies
+# ------------------------------------------------------------
+""" Every enemy has the same five poses, one per stage of its single
+attack plus walking, in the same four directions as the player. The size
+is the placeholder's while no art exists, and the height the real sprite
+sheet is scaled to by tools/build_assets.py once it does. """
+ENEMY_POSES = ("idle", "walk", "charge1", "charge2", "attack")
+
+ENEMY_SPRITE_SIZES = {
+    "zombie": (32, 64),
+    "witch": (64, 64),
+    "golem": (64, 96),
+}
+
+for _kind, _size in ENEMY_SPRITE_SIZES.items():
+    TEXTURES.update(
+        {
+            f"enemy-{_kind}-{pose}-{direction}": _character_graphic(
+                "enemies", f"enemy_{_kind}_{pose}_{direction}", f"{_kind}-{pose}-{direction}", _size
+            )
+            for pose in ENEMY_POSES
+            for direction in PLAYER_DIRECTIONS
+        }
+    )
+
 
 # ------------------------------------------------------------
 # Fonts

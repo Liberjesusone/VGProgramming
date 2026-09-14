@@ -50,8 +50,7 @@ def contains_point(
         return False
 
     cos_angle = direction.dot(to_point) / distance
-    # Clamped: floating point can push this just past +-1, which
-    # math.acos raises on.
+    # Clamped: floating point can push this just past +-1, which math.acos raises on.
     cos_angle = max(-1.0, min(1.0, cos_angle))
     return math.degrees(math.acos(cos_angle)) <= half_angle_degrees
 

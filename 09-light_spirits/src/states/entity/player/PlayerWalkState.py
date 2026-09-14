@@ -16,6 +16,7 @@ import math
 import pygame
 
 from actions import MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT, MOVE_UP
+from src.definitions.combat import CHARGE_SPEED_FACTORS
 from src.states.entity.player.PlayerBaseState import PlayerBaseState
 
 SPEED = 110.0
@@ -52,9 +53,11 @@ class PlayerWalkState(PlayerBaseState):
             player.change_state("idle")
             return
 
-        # Normalised, so walking diagonally is not faster than walking
-        # straight, which it would be if both axes moved a full step.
-        movement = pygame.Vector2(dx, dy).normalize() * SPEED * dt
+        """ Normalised, so walking diagonally is not faster than walking straight, which it 
+        would be if both axes moved a full step. _update_charge above already set the 
+        pose if a charge is building, and each charge pose slows the walk down a little more. """
+        speed = SPEED * CHARGE_SPEED_FACTORS.get(player.pose, 1.0)
+        movement = pygame.Vector2(dx, dy).normalize() * speed * dt
 
         if abs(dx) > abs(dy):
             player.direction = "right" if dx > 0 else "left"
