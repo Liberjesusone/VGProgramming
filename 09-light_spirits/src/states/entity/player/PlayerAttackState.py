@@ -69,7 +69,7 @@ class PlayerAttackState(PlayerBaseState):
         player.current_stamina -= MELEE_STAMINA_COST if charge < self.time_in_charge1_percent  else MELEE_STAMINA_HIGH_COST
 
         for entity in player.level.entities:
-            if entity in already_hit:
+            if entity in already_hit or not entity.hittable:
                 continue
 
             """ The middle of the body, matching the cone's own origin at the player's middle, 

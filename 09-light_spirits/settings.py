@@ -20,6 +20,7 @@ from actions import (
     ATTACK,
     CONFIRM,
     DEBUG,
+    DEBUG_BOSS,
     MOVE_DOWN,
     MOVE_LEFT,
     MOVE_RIGHT,
@@ -41,6 +42,7 @@ input_handler.InputHandler.set_keyboard_action(input_handler.KEY_s, MOVE_DOWN)
 input_handler.InputHandler.set_keyboard_action(input_handler.KEY_a, MOVE_LEFT)
 input_handler.InputHandler.set_keyboard_action(input_handler.KEY_d, MOVE_RIGHT)
 input_handler.InputHandler.set_keyboard_action(input_handler.KEY_F1, DEBUG)
+input_handler.InputHandler.set_keyboard_action(input_handler.KEY_F2, DEBUG_BOSS)
 input_handler.InputHandler.set_keyboard_action(input_handler.KEY_q, SWITCH_WEAPON)
 input_handler.InputHandler.set_keyboard_action(input_handler.KEY_SPACE, ROLL)
 
@@ -322,6 +324,35 @@ FONTS = {
     "medium": pygame.font.Font(None, 28),
     "large": pygame.font.Font(None, 64),
 }
+
+
+# ------------------------------------------------------------
+# Sounds
+# ------------------------------------------------------------
+def _load_sounds() -> Dict[str, "pygame.mixer.Sound"]:
+    """ Every .wav or .ogg in assets/sounds, keyed by its file name without
+    the extension. Anything asking for a sound that is not there, or a
+    machine with no audio device at all, simply gets silence (see
+    src/audio.py), never an error. """
+    folder = BASE_DIR / "assets" / "sounds"
+
+    if not folder.is_dir():
+        return {}
+
+    try:
+        if not pygame.mixer.get_init():
+            pygame.mixer.init()
+    except pygame.error:
+        return {}
+
+    return {
+        path.stem: pygame.mixer.Sound(str(path))
+        for path in sorted(folder.iterdir())
+        if path.suffix.lower() in (".wav", ".ogg")
+    }
+
+
+SOUNDS = _load_sounds()
 
 
 # ------------------------------------------------------------

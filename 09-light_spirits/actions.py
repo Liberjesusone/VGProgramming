@@ -26,6 +26,7 @@ MOVE_LEFT = "move_left"
 MOVE_RIGHT = "move_right"
 
 DEBUG = "debug"
+DEBUG_BOSS = "debug_boss"
 SWITCH_WEAPON = "switch_weapon"
 ATTACK = "attack"
 ROLL = "roll"

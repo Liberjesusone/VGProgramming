@@ -6,7 +6,7 @@ Final project for ISPPV1 (Video Game Programming I), Universidad de Los Andes.
 
 ## Status
 
-Milestone 3. An archer with a bow and a sword, each with its own charged attack aimed at the mouse, a dodge roll with invulnerability frames, and a shared stamina bar gating both. Three enemy kinds (zombie, witch, golem) guard the ruins, each with a single unpredictable charged attack and a stun that can chain if the player isn't careful. Runs borderless fullscreen with the mouse confined to the window. The final boss's art exists but is not wired into gameplay yet. See `CHANGELOG.md` for progress by milestone.
+Milestone 4. An archer with a bow and a sword, each with its own charged attack aimed at the mouse, a dodge roll with invulnerability frames, and a shared stamina bar gating both. Three enemy kinds (zombie, witch, golem) guard the ruins, each with a single unpredictable charged attack and a stun that can chain if the player isn't careful. The final boss is fully playable: Samurai Gurenmaru, a relentless melee duelist, and the Light Spirit that rises from his body once he falls, a ranged archer that keeps its distance, ending the game once both are defeated. Runs borderless fullscreen with the mouse confined to the window. See `CHANGELOG.md` for progress by milestone.
 
 ## Running it
 
@@ -27,6 +27,7 @@ Requires `gale-engine` (see the repo root's `requirements.txt`). `numpy` is also
 - `Q` — switch weapon (bow / sword)
 - `Enter` — confirm (title screen, game over)
 - `F1` — toggle debug view (collision boxes, depth-sort lines)
+- `F2` — teleport to the boss arena (debug, for testing the fight)
 
 ## Assets
 
@@ -34,9 +35,13 @@ All art is AI-generated, then packed by `tools/build_assets.py` into one tileset
 
 ## Map (Tiled)
 
-The current map is still generated in code (`src/world/Level.py`), on a fixed seed. Milestone 4 replaces it with a map authored in Tiled, painted with the same tilesets `tools/build_assets.py` already produces. Layer names, object properties and export settings are all fixed there so a map built there loads the same way.
+The current map is still generated in code (`src/world/Level.py`), on a fixed seed. Milestone 5 replaces it with a map authored in Tiled, painted with the same tilesets `tools/build_assets.py` already produces. Layer names, object properties and export settings are all fixed there so a map built there loads the same way.
 
 ## Screenshots
+
+### Milestone 4
+
+![All new features in one png](milestones_png/milestone4.png)
 
 ### Milestone 3
 

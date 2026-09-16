@@ -22,7 +22,7 @@ layout in ways that would be very hard to trace back.
 """
 
 import random
-from typing import Any, List, Tuple
+from typing import Any, List, Optional, Tuple
 
 import pygame
 
@@ -59,6 +59,16 @@ always starts (see spawn_point), so a run never opens with a guard
 already standing on top of them. """
 ENEMY_SPAWN_EXCLUSION_RADIUS = 160
 
+""" The boss arena: a clear circle centred on the samurai's spawn, near the
+top of the map and well away from where the player starts. Props are
+removed from it and regular enemies kept further out still, see
+_clear_arena and _place_enemies. Replaced by the boss point of the Tiled
+map once the map is loaded from there (see TILED_GUIDE.md). """
+BOSS_ARENA_Y = 260
+BOSS_ARENA_RADIUS = 230
+ARENA_PROP_MARGIN = 40
+ARENA_ENEMY_MARGIN = 160
+
 # Arbitrary. Change this to get a different fixed layout; the layout
 # stays whatever this value produces until it is changed again.
 MAP_SEED = 20260909
@@ -90,7 +100,11 @@ class Level:
         self.props: List[Prop] = []
         self._place_props()
 
-        self.entities: List[Enemy] = []
+        # Where the samurai waits, see BOSS_ARENA_Y. BossFight spawns him there.
+        self.boss_spawn = (self.pixel_width / 2, BOSS_ARENA_Y)
+        self._clear_arena()
+
+        self.entities: List[Any] = []
         self._place_enemies()
 
         # The player's arrows currently in flight, they only ever hit enemies.
@@ -98,6 +112,9 @@ class Level:
 
         # Enemy attacks still in flight (the witch's AreaShot), they only ever hit the player.
         self.hazards: List[Any] = []
+
+        # The strongest camera shake asked for since PlayState last applied one.
+        self.shake_request: Optional[Tuple[float, float]] = None
 
     # ------------------------------------------------------------
     # geometry
@@ -138,6 +155,18 @@ class Level:
 
         return any(prop.solid_rect.colliderect(rect) for prop in self.props)
 
+    def in_arena(self, x: float, y: float, margin: float = 0.0) -> bool:
+        """ True if the given coords are inside of the BOSS_ARENA_RADIUS"""
+        distance = (pygame.Vector2(x, y) - pygame.Vector2(self.boss_spawn)).length()
+        return distance <= BOSS_ARENA_RADIUS + margin
+
+    def request_shake(self, magnitude: float, duration: float) -> None:
+        """ Asked for by whatever lands a heavy blow; PlayState owns the
+        camera and applies it. Two requests in the same frame keep the
+        stronger one instead of the last one. """
+        if self.shake_request is None or magnitude > self.shake_request[0]:
+            self.shake_request = (magnitude, duration)
+
 
     # ------------------------------------------------------------
     # Update 
@@ -154,9 +183,13 @@ class Level:
                 if arrow.dead:
                     break
 
+                # A fallen boss's body is still drawn but no longer there to hit.
+                if not entity.hittable:
+                    continue
+
                 if entity.hurt_rect.collidepoint(arrow.x, arrow.y):
                     entity.damage(arrow.damage)
-                    entity.change_state("chase")
+                    entity.provoke()
                     arrow.dead = True
 
             if arrow.dead:
@@ -250,6 +283,16 @@ class Level:
 
             self.props.append(candidate)
 
+    def _clear_arena(self) -> None:
+        """ Removes every prop standing inside the boss arena, so both forms
+        have room to dash, strafe and flee instead of snagging on scenery.
+        Filtering after placement, rather than rejecting positions while
+        placing, keeps every other prop exactly where the seed put it. """
+        self.props = [
+            prop for prop in self.props
+            if not self.in_arena(prop.solid_rect.centerx, prop.solid_rect.centery, margin=ARENA_PROP_MARGIN)
+        ]
+
     def _place_enemies(self) -> None:
         margin = EDGE_MARGIN_TILES * settings.TILE_SIZE
         centre = pygame.Vector2(self.pixel_width / 2, self.pixel_height / 2)
@@ -262,6 +305,10 @@ class Level:
             y = self._rng.uniform(margin + 100, self.pixel_height - margin)
 
             if (pygame.Vector2(x, y) - centre).length() < ENEMY_SPAWN_EXCLUSION_RADIUS:
+                continue
+
+            # Regular enemies are kept well clear of the boss, so neither fight spills into the other.
+            if self.in_arena(x, y, margin=ARENA_ENEMY_MARGIN):
                 continue
 
             candidate = Enemy(ENEMY_SPAWNS[len(self.entities)], x, y, self)

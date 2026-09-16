@@ -146,9 +146,19 @@ class Enemy:
             if not self.level.blocked(self.feet_rect_at(target_x, target_y)):
                 self.x, self.y = target_x, target_y
 
+    @property
+    def hittable(self) -> bool:
+        # A regular enemy can always be hit, see Boss.hittable for one that sometimes can't.
+        return True
+
     def damage(self, amount: int) -> None:
         self.health = max(0, self.health - amount)
         self.hit_flash = HIT_FLASH_TIME
+
+    def provoke(self) -> None:
+        """ Called when an arrow lands: the enemy turns on the player at
+        once, from guard or from the middle of an attack. """
+        self.change_state("chase")
 
     # ------------------------------------------------------------
     # Update

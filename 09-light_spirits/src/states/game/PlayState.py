@@ -4,8 +4,9 @@ Light Spirits
 Author: Liber Jesus Puccini
 liberjesusone@gmail.com
 
-This file contains the class PlayState: 
-the world, the player in it, and the camera that follows them.
+This file contains the class PlayState:
+the world, the player in it, the camera that follows them, and the final
+boss fight waiting in its arena.
 """
 
 from typing import Any
@@ -17,13 +18,17 @@ from gale.state import BaseState
 from gale.text import render_text
 
 import settings
-from actions import DEBUG
+from actions import DEBUG, DEBUG_BOSS
 from src.entity.Player import Player
+from src.world.BossFight import BossFight
 from src.world.Level import Level
 
 CAMERA_FOLLOW_RATE = 7.0
 
 HUD_TEXT = "WASD     F1 shows the boxes"
+
+# Where the debug shortcut drops the player, below the boss, facing him.
+DEBUG_BOSS_OFFSET = 200
 
 
 class PlayState(BaseState):
@@ -32,6 +37,8 @@ class PlayState(BaseState):
 
         spawn_x, spawn_y = self.level.spawn_point()
         self.player = Player(spawn_x, spawn_y, self.level)
+
+        self.boss_fight = BossFight(self.level)
 
         self.camera = Camera(settings.VIRTUAL_WIDTH, settings.VIRTUAL_HEIGHT)
         self.camera.bounds = self.level.bounds
@@ -55,13 +62,28 @@ class PlayState(BaseState):
         camera is what turns the mouse into a world-space aim direction
         every frame, and is never cached on Player since PlayState is
         the one that could someday swap it (a boss-room camera cut, a
-        zoom effect) out from under it. """ 
-        self.player.update(dt, self.camera)
-        self.level.update(dt, self.player)
+        zoom effect) out from under it.
 
-        if self.player.dead:
-            self._on_game_over()
-            return
+        Once the boss is beaten the world stops: only the ending keeps
+        playing, and when it is done the game returns to the title. """
+        if self.boss_fight.world_frozen:
+            self.boss_fight.update_frozen(dt, self.player)
+
+            if self.boss_fight.finished:
+                self.state_machine.pop()
+                return
+        else:
+            self.player.update(dt, self.camera)
+            self.level.update(dt, self.player)
+            self.boss_fight.update(dt, self.player)
+
+            if self.player.dead:
+                self._on_game_over()
+                return
+
+        if self.level.shake_request is not None:
+            self.camera.shake(*self.level.shake_request)
+            self.level.shake_request = None
 
         # The camera
         self.camera_target.update(self.player.center)
@@ -73,8 +95,15 @@ class PlayState(BaseState):
         self.state_machine.push(GameOverState(self.state_machine))
 
     def on_input(self, input_id: str, input_data: Any) -> None:
+        if self.boss_fight.world_frozen:
+            return
+
         if input_id == DEBUG and input_data.pressed:
             self.debug = not self.debug
+            return
+
+        if input_id == DEBUG_BOSS and input_data.pressed:
+            self._teleport_to_boss()
             return
 
         self.player.on_input(input_id, input_data)
@@ -100,6 +129,21 @@ class PlayState(BaseState):
             surface, HUD_TEXT, settings.FONTS["small"], 8, 8, settings.COLOR_DIM
         )
         self.player.render_hud(surface)
+        self.boss_fight.render_hud(surface)
+        self.boss_fight.render_overlay(surface)
+
+    # ------------------------------------------------------------
+    # Debug
+    # ------------------------------------------------------------
+    def _teleport_to_boss(self) -> None:
+        """ Drops the player right below the boss arena, so the fight can be
+        retried without walking across the whole map every time. """
+        boss_x, boss_y = self.level.boss_spawn
+        self.player.x = boss_x
+        self.player.y = boss_y + DEBUG_BOSS_OFFSET
+        self.camera_target.update(self.player.center)
+        self.camera.x, self.camera.y = self.camera_target
+        self.camera.update(0)
 
     def _render_debug(self, surface: pygame.Surface) -> None:
         """ Draws every collision box and the exact line each thing is
@@ -119,7 +163,8 @@ class PlayState(BaseState):
             f"player ({self.player.x:.0f}, {self.player.y:.0f})   "
             f"props {len(self.level.props)}   "
             f"enemies {len(self.level.entities)}   "
-            f"map {self.level.pixel_width}x{self.level.pixel_height}"
+            f"map {self.level.pixel_width}x{self.level.pixel_height}   "
+            f"boss {self.boss_fight.phase}"
         )
         render_text(
             surface,

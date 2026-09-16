@@ -40,16 +40,20 @@ class AreaShot:
         damage: int,
         stun: str,
         speed: float,
+        delay: float = 0.0,
     ) -> None:
         """ origin and target are both points on the ground; origin_height
         is how far above its own ground point the shot leaves from, so it
-        visibly starts at the shooter's hands and ends in the dirt. """
+        visibly starts at the shooter's hands and ends in the dirt. delay
+        holds the shot back that many seconds before it leaves, its circle
+        already showing on the ground, so a volley comes down staggered. """
         self.origin = pygame.Vector2(origin)
         self.origin_height = origin_height
         self.target = pygame.Vector2(target)
         self.radius = radius
         self.damage = damage
         self.stun = stun
+        self.delay = delay
 
         distance = (self.target - self.origin).length()
         self.flight_time = max(MIN_FLIGHT_TIME, distance / speed)
@@ -58,7 +62,7 @@ class AreaShot:
 
     @property
     def progress(self) -> float:
-        return min(1.0, self.elapsed / self.flight_time)
+        return min(1.0, max(0.0, self.elapsed - self.delay) / self.flight_time)
 
     @property
     def ground(self) -> pygame.Vector2:
@@ -80,7 +84,7 @@ class AreaShot:
     def update(self, dt: float, player: Any) -> None:
         self.elapsed += dt
 
-        if self.elapsed < self.flight_time:
+        if self.elapsed < self.delay + self.flight_time:
             return
 
         feet = pygame.Vector2(player.x, player.y)
@@ -91,6 +95,9 @@ class AreaShot:
         self.dead = True
 
     def render(self, surface: pygame.Surface, camera: Any) -> None:
+        if self.elapsed < self.delay:
+            return
+
         head = self._point_at(self.progress)
         tail = self._point_at(progress=max(0.0, self.progress - 0.04))
         pygame.draw.line(

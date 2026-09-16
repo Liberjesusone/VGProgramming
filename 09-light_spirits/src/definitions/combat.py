@@ -34,6 +34,8 @@ shake: amplitude in pixels of the stagger wobble drawn on the sprite. """
 STUNS = {
     "light": {"duration": 0.35, "knockback": 16.0, "knockback_time": 0.12, "shake": 2.0},
     "heavy": {"duration": 1.0, "knockback": 46.0, "knockback_time": 0.25, "shake": 3.5},
+    # The spirit's bow swing: as long as a heavy stun, but it throws the player far back.
+    "launch": {"duration": 1.1, "knockback": 120.0, "knockback_time": 0.28, "shake": 3.5},
 }
 
 # How long a sprite stays tinted after taking damage, and the tint added.

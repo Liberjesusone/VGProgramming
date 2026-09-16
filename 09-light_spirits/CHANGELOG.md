@@ -3,6 +3,24 @@
 All notable changes to this project are documented here, newest first.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Milestone 4]
+
+### Added
+
+- The final boss: Samurai Gurenmaru, and the Light Spirit that rises from his body once he falls. Two `Boss` subclasses (`SamuraiBoss`, `SpiritBoss`) sharing one base class and a family of states in `src/states/entity/boss/`, the same data-driven shape as `Enemy`/`ENEMY_DEFS`, now in `src/definitions/bosses.py`.
+- Samurai Gurenmaru: always closes the distance. A normal slash with a chance to immediately chain a second, faster one; a surprise dash that closes in fast and ends in a slash; and a thrust, a thin, long, near-straight cone telegraphed by a sound cue and a camera shake the instant it locks in, which heavily stuns on a hit and, landed or not, is always followed by a dash back in and three fast combo hits.
+- Every melee swing, on either form, is one shared "strike" definition (wind-up poses, charge/lock timing, cone, damage, stun, a forward lunge, an optional warning cue and impact shake) resolved by a single `BossStrikeState`.
+- The Light Spirit: rises out of the samurai's corpse with a tween (fades in while lifting clear of the body) once he falls. Fights as an archer that tries to hold a fixed distance band, strafing unpredictably from side to side; fires single fast, heavy arrows; periodically casts a rain of arrows that lands staggered around the player; and, if the player closes in, swings its bow for a weak hit that launches them back, then either backdashes away if there is room behind it, or flees along whatever direction is actually clear if it is cornered.
+- A fading afterimage trail while either form dashes, and a translucent, flickering look for the spirit (the art itself is fully opaque; the ghostly look is entirely a render-time effect, since generated art has no real transparency to rely on).
+- A named boss health bar, replacing the player's own HUD bar while a boss fight is on screen, with a pale "damage lag" segment that holds briefly after a hit before draining down to the new value, and an "ENEMY FELLED" banner when the samurai falls.
+- The ending: once the spirit falls, both forms dissolve together, the player loses control and becomes invulnerable, the screen fades to black over several seconds, and a small flame kindles and burns out in the middle of the screen before the game returns to the title.
+- `src/audio.py` and `assets/sounds/`: a minimal sound system (`audio.play(name)`) backing the thrust's warning cue. A missing sound plays nothing instead of erroring.
+- `F2`: teleports the player to the boss arena, for testing the fight without crossing the map every time.
+
+### Changed
+
+- `Level.entities` can now hold a `Boss` alongside regular `Enemy` instances. Anything that iterates it (the player's melee swing, arrows) now checks a shared `hittable` property instead of assuming everything in the list can always be hit, since a fallen boss's body stays on screen as a corpse long after it stops being one.
+
 ## [Milestone 3]
 
 ### Added

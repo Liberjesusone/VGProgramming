@@ -62,7 +62,7 @@ HUD_BAR_TRACK_COLOR = (32, 36, 32)
 HUD_BAR_BORDER_COLOR = (70, 92, 74)
 HUD_BAR_FILL_COLOR = (94, 148, 104)
 
-MAX_HEALTH = 10
+MAX_HEALTH = 50
 
 # The health bar sits right under the stamina bar, same size and track.
 HUD_BAR_GAP = 3
