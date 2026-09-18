@@ -1,0 +1,31 @@
+{
+ "tile_width": 32,
+ "tile_height": 32,
+ "columns": 32,
+ "regions": {
+  "rock_field": [
+   0,
+   0,
+   256,
+   256
+  ],
+  "hill_edge_south": [
+   256,
+   0,
+   640,
+   96
+  ],
+  "hill_edge_east": [
+   896,
+   0,
+   96,
+   448
+  ],
+  "hill_edge_west": [
+   0,
+   448,
+   96,
+   448
+  ]
+ }
+}

@@ -1,0 +1,217 @@
+{
+ "tile_width": 64,
+ "tile_height": 96,
+ "columns": 8,
+ "regions": {
+  "bonfire_unlit": [
+   8,
+   40,
+   47,
+   56
+  ],
+  "bonfire_lit_base": [
+   75,
+   40,
+   42,
+   56
+  ],
+  "bonfire_scorched_ground": [
+   139,
+   56,
+   41,
+   40
+  ],
+  "bonfire_flame_a_1": [
+   210,
+   58,
+   27,
+   38
+  ],
+  "bonfire_flame_a_2": [
+   275,
+   57,
+   26,
+   39
+  ],
+  "bonfire_flame_a_3": [
+   338,
+   58,
+   27,
+   38
+  ],
+  "bonfire_flame_a_4": [
+   402,
+   57,
+   28,
+   39
+  ],
+  "bonfire_flame_a_5": [
+   466,
+   56,
+   28,
+   40
+  ],
+  "bonfire_flame_a_6": [
+   19,
+   152,
+   26,
+   40
+  ],
+  "bonfire_flame_a_7": [
+   82,
+   152,
+   28,
+   40
+  ],
+  "bonfire_flame_a_8": [
+   147,
+   152,
+   26,
+   40
+  ],
+  "bonfire_flame_b_1": [
+   211,
+   152,
+   26,
+   40
+  ],
+  "bonfire_flame_b_2": [
+   275,
+   152,
+   26,
+   40
+  ],
+  "bonfire_flame_b_3": [
+   337,
+   153,
+   30,
+   39
+  ],
+  "bonfire_flame_b_4": [
+   403,
+   152,
+   26,
+   40
+  ],
+  "bonfire_flame_b_5": [
+   467,
+   153,
+   26,
+   39
+  ],
+  "bonfire_flame_b_6": [
+   19,
+   250,
+   25,
+   38
+  ],
+  "bonfire_flame_b_7": [
+   81,
+   249,
+   29,
+   39
+  ],
+  "bonfire_flame_b_8": [
+   147,
+   249,
+   25,
+   39
+  ],
+  "bonfire_kindle_1": [
+   216,
+   259,
+   16,
+   29
+  ],
+  "bonfire_kindle_2": [
+   276,
+   244,
+   23,
+   44
+  ],
+  "bonfire_kindle_3": [
+   336,
+   216,
+   31,
+   72
+  ],
+  "bonfire_kindle_4": [
+   403,
+   231,
+   26,
+   57
+  ],
+  "bonfire_kindle_5": [
+   467,
+   235,
+   25,
+   53
+  ],
+  "bonfire_kindle_6": [
+   18,
+   331,
+   27,
+   53
+  ],
+  "bonfire_kindle_7": [
+   83,
+   340,
+   25,
+   44
+  ],
+  "bonfire_kindle_8": [
+   148,
+   342,
+   23,
+   42
+  ],
+  "bonfire_embers_1": [
+   217,
+   356,
+   13,
+   28
+  ],
+  "bonfire_embers_2": [
+   281,
+   358,
+   13,
+   26
+  ],
+  "bonfire_embers_3": [
+   346,
+   357,
+   11,
+   27
+  ],
+  "bonfire_embers_4": [
+   412,
+   358,
+   8,
+   26
+  ],
+  "bonfire_embers_5": [
+   473,
+   356,
+   13,
+   28
+  ],
+  "bonfire_embers_6": [
+   27,
+   453,
+   10,
+   27
+  ],
+  "bonfire_embers_7": [
+   92,
+   456,
+   8,
+   24
+  ],
+  "bonfire_embers_8": [
+   157,
+   457,
+   6,
+   23
+  ]
+ }
+}

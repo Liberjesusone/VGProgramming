@@ -1,0 +1,49 @@
+{
+ "tile_width": 32,
+ "tile_height": 32,
+ "columns": 32,
+ "regions": {
+  "wall_stone_front": [
+   0,
+   0,
+   704,
+   96
+  ],
+  "wall_stone_front2": [
+   0,
+   96,
+   736,
+   96
+  ],
+  "wall_stone_side": [
+   736,
+   96,
+   32,
+   384
+  ],
+  "wall_stone_pillar": [
+   768,
+   96,
+   64,
+   128
+  ],
+  "wall_marble_front": [
+   0,
+   480,
+   704,
+   96
+  ],
+  "wall_marble_side": [
+   704,
+   480,
+   32,
+   384
+  ],
+  "wall_marble_pillar": [
+   736,
+   480,
+   64,
+   128
+  ]
+ }
+}

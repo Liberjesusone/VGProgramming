@@ -1,0 +1,487 @@
+{
+ "tile_width": 192,
+ "tile_height": 192,
+ "columns": 4,
+ "regions": {
+  "boss_samurai_idle_down": [
+   51,
+   64,
+   90,
+   128
+  ],
+  "boss_samurai_idle_up": [
+   251,
+   71,
+   73,
+   121
+  ],
+  "boss_samurai_idle_left": [
+   446,
+   78,
+   68,
+   114
+  ],
+  "boss_samurai_idle_right": [
+   638,
+   78,
+   68,
+   114
+  ],
+  "boss_samurai_walk_down": [
+   62,
+   263,
+   68,
+   121
+  ],
+  "boss_samurai_walk_up": [
+   256,
+   262,
+   64,
+   122
+  ],
+  "boss_samurai_walk_left": [
+   440,
+   268,
+   79,
+   116
+  ],
+  "boss_samurai_walk_right": [
+   632,
+   268,
+   79,
+   116
+  ],
+  "boss_samurai_charge1_down": [
+   33,
+   463,
+   126,
+   113
+  ],
+  "boss_samurai_charge1_up": [
+   226,
+   464,
+   124,
+   112
+  ],
+  "boss_samurai_charge1_left": [
+   420,
+   468,
+   120,
+   108
+  ],
+  "boss_samurai_charge1_right": [
+   612,
+   468,
+   120,
+   108
+  ],
+  "boss_samurai_charge2_down": [
+   54,
+   617,
+   84,
+   151
+  ],
+  "boss_samurai_charge2_up": [
+   252,
+   627,
+   72,
+   141
+  ],
+  "boss_samurai_charge2_left": [
+   443,
+   638,
+   73,
+   130
+  ],
+  "boss_samurai_charge2_right": [
+   635,
+   638,
+   73,
+   130
+  ],
+  "boss_samurai_attack_down": [
+   13,
+   853,
+   165,
+   107
+  ],
+  "boss_samurai_attack_up": [
+   209,
+   853,
+   157,
+   107
+  ],
+  "boss_samurai_attack_left": [
+   394,
+   864,
+   172,
+   96
+  ],
+  "boss_samurai_attack_right": [
+   586,
+   864,
+   172,
+   96
+  ],
+  "boss_samurai_ground_charge1_down": [
+   58,
+   999,
+   75,
+   153
+  ],
+  "boss_samurai_ground_charge1_up": [
+   253,
+   988,
+   69,
+   164
+  ],
+  "boss_samurai_ground_charge1_left": [
+   439,
+   1015,
+   81,
+   137
+  ],
+  "boss_samurai_ground_charge1_right": [
+   631,
+   1015,
+   81,
+   137
+  ],
+  "boss_samurai_ground_charge2_down": [
+   49,
+   1247,
+   93,
+   97
+  ],
+  "boss_samurai_ground_charge2_up": [
+   241,
+   1244,
+   93,
+   100
+  ],
+  "boss_samurai_ground_charge2_left": [
+   430,
+   1245,
+   100,
+   99
+  ],
+  "boss_samurai_ground_charge2_right": [
+   622,
+   1245,
+   100,
+   99
+  ],
+  "boss_samurai_ground_attack_down": [
+   33,
+   1436,
+   126,
+   100
+  ],
+  "boss_samurai_ground_attack_up": [
+   230,
+   1424,
+   116,
+   112
+  ],
+  "boss_samurai_ground_attack_left": [
+   421,
+   1437,
+   118,
+   99
+  ],
+  "boss_samurai_ground_attack_right": [
+   613,
+   1437,
+   118,
+   99
+  ],
+  "boss_samurai_transition_down": [
+   40,
+   1601,
+   112,
+   127
+  ],
+  "boss_samurai_transition_up": [
+   236,
+   1594,
+   104,
+   134
+  ],
+  "boss_samurai_transition_left": [
+   431,
+   1603,
+   97,
+   125
+  ],
+  "boss_samurai_transition_right": [
+   623,
+   1603,
+   97,
+   125
+  ],
+  "boss_samurai_defeated_down": [
+   48,
+   1834,
+   96,
+   86
+  ],
+  "boss_samurai_defeated_up": [
+   241,
+   1826,
+   93,
+   94
+  ],
+  "boss_samurai_defeated_left": [
+   431,
+   1833,
+   98,
+   87
+  ],
+  "boss_samurai_defeated_right": [
+   623,
+   1833,
+   98,
+   87
+  ],
+  "boss_spirit_idle_down": [
+   65,
+   1984,
+   62,
+   128
+  ],
+  "boss_spirit_idle_up": [
+   257,
+   1985,
+   61,
+   127
+  ],
+  "boss_spirit_idle_left": [
+   457,
+   1995,
+   46,
+   117
+  ],
+  "boss_spirit_idle_right": [
+   649,
+   1995,
+   46,
+   117
+  ],
+  "boss_spirit_walk_down": [
+   63,
+   2177,
+   65,
+   127
+  ],
+  "boss_spirit_walk_up": [
+   258,
+   2175,
+   60,
+   129
+  ],
+  "boss_spirit_walk_left": [
+   447,
+   2190,
+   66,
+   114
+  ],
+  "boss_spirit_walk_right": [
+   639,
+   2190,
+   66,
+   114
+  ],
+  "boss_spirit_charge1_down": [
+   61,
+   2356,
+   69,
+   140
+  ],
+  "boss_spirit_charge1_up": [
+   251,
+   2358,
+   73,
+   138
+  ],
+  "boss_spirit_charge1_left": [
+   441,
+   2372,
+   77,
+   124
+  ],
+  "boss_spirit_charge1_right": [
+   633,
+   2372,
+   77,
+   124
+  ],
+  "boss_spirit_charge2_down": [
+   49,
+   2544,
+   93,
+   144
+  ],
+  "boss_spirit_charge2_up": [
+   244,
+   2552,
+   87,
+   136
+  ],
+  "boss_spirit_charge2_left": [
+   433,
+   2562,
+   94,
+   126
+  ],
+  "boss_spirit_charge2_right": [
+   625,
+   2562,
+   94,
+   126
+  ],
+  "boss_spirit_attack_down": [
+   53,
+   2750,
+   86,
+   130
+  ],
+  "boss_spirit_attack_up": [
+   249,
+   2760,
+   78,
+   120
+  ],
+  "boss_spirit_attack_left": [
+   444,
+   2769,
+   71,
+   111
+  ],
+  "boss_spirit_attack_right": [
+   636,
+   2769,
+   71,
+   111
+  ],
+  "boss_spirit_emerge_down": [
+   48,
+   2966,
+   96,
+   106
+  ],
+  "boss_spirit_emerge_up": [
+   238,
+   2980,
+   100,
+   92
+  ],
+  "boss_spirit_emerge_left": [
+   434,
+   2976,
+   91,
+   96
+  ],
+  "boss_spirit_emerge_right": [
+   626,
+   2976,
+   91,
+   96
+  ],
+  "boss_spirit_melee_charge_down": [
+   53,
+   3137,
+   85,
+   127
+  ],
+  "boss_spirit_melee_charge_up": [
+   253,
+   3151,
+   69,
+   113
+  ],
+  "boss_spirit_melee_charge_left": [
+   442,
+   3154,
+   75,
+   110
+  ],
+  "boss_spirit_melee_charge_right": [
+   634,
+   3154,
+   75,
+   110
+  ],
+  "boss_spirit_melee_attack_down": [
+   32,
+   3349,
+   127,
+   107
+  ],
+  "boss_spirit_melee_attack_up": [
+   227,
+   3343,
+   122,
+   113
+  ],
+  "boss_spirit_melee_attack_left": [
+   417,
+   3351,
+   125,
+   105
+  ],
+  "boss_spirit_melee_attack_right": [
+   609,
+   3351,
+   125,
+   105
+  ],
+  "boss_spirit_defeated_down": [
+   50,
+   3561,
+   92,
+   87
+  ],
+  "boss_spirit_defeated_up": [
+   237,
+   3557,
+   101,
+   91
+  ],
+  "boss_spirit_defeated_left": [
+   432,
+   3562,
+   95,
+   86
+  ],
+  "boss_spirit_defeated_right": [
+   624,
+   3562,
+   95,
+   86
+  ],
+  "boss_spirit_dissolve_down": [
+   58,
+   3704,
+   76,
+   136
+  ],
+  "boss_spirit_dissolve_up": [
+   251,
+   3711,
+   73,
+   129
+  ],
+  "boss_spirit_dissolve_left": [
+   446,
+   3726,
+   68,
+   114
+  ],
+  "boss_spirit_dissolve_right": [
+   638,
+   3726,
+   68,
+   114
+  ]
+ }
+}

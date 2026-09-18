@@ -1,0 +1,55 @@
+{
+ "tile_width": 32,
+ "tile_height": 32,
+ "columns": 32,
+ "regions": {
+  "cliff_edge_south": [
+   0,
+   0,
+   672,
+   128
+  ],
+  "cliff_edge_north": [
+   0,
+   128,
+   480,
+   96
+  ],
+  "cliff_edge_east": [
+   480,
+   128,
+   96,
+   320
+  ],
+  "cliff_edge_west": [
+   576,
+   128,
+   96,
+   320
+  ],
+  "cliff_corner_southeast": [
+   672,
+   128,
+   128,
+   160
+  ],
+  "cliff_corner_southwest": [
+   800,
+   128,
+   128,
+   160
+  ],
+  "abyss_clouds": [
+   0,
+   448,
+   256,
+   256
+  ],
+  "abyss_mist": [
+   256,
+   448,
+   256,
+   256
+  ]
+ }
+}
