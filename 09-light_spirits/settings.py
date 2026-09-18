@@ -125,14 +125,6 @@ FLOOR_MATERIALS = [
     "grey_ash_and_fine_gravel",
 ]
 
-PROP_NAMES = [
-    "broken_stone_pillar",
-    "dead_leafless_tree",
-    "mossy_boulder",
-    "rusted_iron_brazier",
-    "stone_sarcophagus",
-]
-
 """ Every direction a character sprite can face. "left" is never its own
 generated image (see tools/build_assets.py): it is "right" mirrored at
 build time, but the key exists here like the other three so nothing
@@ -248,7 +240,7 @@ FLOOR_FIRST_GID = {
 # Props
 # ------------------------------------------------------------
 TEXTURES.update(
-    {f"prop-{name}": TILESETS["props"][name] for name in PROP_NAMES}
+    {f"prop-{name}": image for name, image in TILESETS["props"].items()}
 )
 
 

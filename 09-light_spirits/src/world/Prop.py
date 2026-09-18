@@ -8,7 +8,7 @@ This file contains the class Prop: a piece of scenery that stands on the
 floor, is taller than the ground it occupies, and can be walked behind.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import pygame
 
@@ -55,19 +55,31 @@ class Prop:
         self.width: int = self.image.get_width()
         self.height: int = self.image.get_height()
 
-        # The solid base, as a fraction of the image's own width and a
-        # depth in pixels, so a prop keeps the same footprint if its art
-        # is later redrawn at another size.
-        self.solid_width: float = self.width * definition["solid_width_ratio"]
+        """ The solid base, as fractions of the image's own width and a depth
+        in pixels, so a prop keeps the same footprint if its art is later
+        redrawn at another size. One centred part unless the definition
+        lists its own (see src/definitions/props.py). A prop never moves
+        once placed, so its collision boxes never change either. """
         self.solid_depth: float = definition["solid_depth"]
+        if "solid_parts" in definition:
+            parts = definition["solid_parts"]
+        else:
+            parts = [(0.5, definition["solid_width_ratio"])]
 
-        # A prop never moves once placed, so its collision box never changes either
-        self.solid_rect: pygame.Rect = pygame.Rect(
-            round(self.x - self.solid_width / 2),
-            round(self.y - self.solid_depth),
-            round(self.solid_width),
-            round(self.solid_depth),
-        )
+        left = self.x - self.width / 2
+
+        self.solid_rects: List[pygame.Rect] = [
+            pygame.Rect(
+                round(left + self.width * centre - self.width * ratio / 2),
+                round(self.y - self.solid_depth),
+                round(self.width * ratio),
+                round(self.solid_depth),
+            )
+            for centre, ratio in parts
+        ]
+
+        # The whole footprint in one box, what placement spacing is measured against.
+        self.solid_rect: pygame.Rect = self.solid_rects[0].unionall(self.solid_rects[1:])
 
     @property
     def sort_y(self) -> float:
@@ -90,4 +102,6 @@ class Prop:
 
     def render_debug(self, surface: pygame.Surface, camera: Any) -> None:
         pygame.draw.rect(surface, (90, 140, 220), camera.apply(self.image_rect), 1)
-        pygame.draw.rect(surface, (220, 80, 80), camera.apply(self.solid_rect), 1)
+
+        for part in self.solid_rects:
+            pygame.draw.rect(surface, (220, 80, 80), camera.apply(part), 1)

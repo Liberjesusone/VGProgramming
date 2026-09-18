@@ -3,6 +3,24 @@
 All notable changes to this project are documented here, newest first.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Milestone 5]
+
+### Added
+
+- The ruins are now a hand-built Tiled map (`assets/maps/ruins_v2.tmj`) instead of the procedural generator, loaded by `Level.try_load_tilemap`. Every tile layer is drawn as painted; only the `walls` layer blocks, and only on tiles marked `collision = solid` in Tiled's own tileset editor.
+- `src/world/tiled.py`: reads a Tiled JSON export directly, without gale's own `load_tiled_map`, for two reasons that loader doesn't handle: it opens tileset images through the path Tiled wrote into the map, which only exists on the machine that saved it, and it drops a tile object's `gid`, the one field that says what a placed object actually is. Here a tileset is matched to one of ours by its image's file name, and a tile object keeps the sprite it was placed with.
+- Every placed object becomes what its own tileset says it is, regardless of which object layer it was dropped on: a `prop` sprite becomes a solid `Prop`, `decor`/`bonfire` become non-blocking `Decor`, `enemies` spawns the right kind of `Enemy`, `bosses` sets where the samurai waits, and `player` sets where the run starts. A tile's exact region is resolved from our own tileset JSON index, not from any name typed into Tiled, so nothing needs to be labelled by hand to be recognised.
+- Only the tilesets actually painted into a tile layer have their image loaded and registered; a tileset only ever referenced by objects (`props`, `enemies`, `bosses`, `decor`, `bonfire`) never gets pulled into the renderer at all.
+- `src/world/Decor.py`: scenery drawn and depth-sorted exactly like a `Prop`, anchored on its feet, but never solid.
+- 7 more props (torii gate, stone lantern, dead black pine, katana grave, tattered war banner, fallen shrine bell, armor remains) now have collision footprints, alongside the original five.
+- A prop's solid footprint can now be more than one box (`solid_parts` in `PROP_DEFS`), so the torii gate blocks only its two pillars and stays walkable through the middle, and the war banner blocks only its pole.
+- The procedural generator (`Level._generate`) is kept as a fallback: if `ruins_v2.tmj` is missing, the level builds exactly as it did before, seed and all.
+
+### Fixed
+
+- `F2` (teleport to the boss arena) now lands on the nearest free spot instead of wherever the fixed offset happened to be, which could be inside a wall on the hand-built map.
+- We had to adapt our own logic of load_tilemap to get the behaviour that we are expecting when we put a tile that represents a memory object in a Object-Layer, because then we no longer need to fill a Tiled project with empty boxes that has some specific gid, that could lead into typing mistakes.
+
 ## [Milestone 4]
 
 ### Added

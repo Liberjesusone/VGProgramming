@@ -139,8 +139,7 @@ class PlayState(BaseState):
         """ Drops the player right below the boss arena, so the fight can be
         retried without walking across the whole map every time. """
         boss_x, boss_y = self.level.boss_spawn
-        self.player.x = boss_x
-        self.player.y = boss_y + DEBUG_BOSS_OFFSET
+        self.player.x, self.player.y = self.level.free_point_near(boss_x, boss_y + DEBUG_BOSS_OFFSET)
         self.camera_target.update(self.player.center)
         self.camera.x, self.camera.y = self.camera_target
         self.camera.update(0)

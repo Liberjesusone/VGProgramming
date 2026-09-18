@@ -34,7 +34,7 @@ from typing import Any, Dict
 
 SAMURAI: Dict[str, Any] = {
     "name": "Samurai Gurenmaru",
-    "max_health": 100,
+    "max_health": 5,
     "aggro_radius": 230.0,
     "speed": 130.0,
     # How often the pursuit rolls for a surprise dash, so the chance
@@ -115,7 +115,7 @@ SAMURAI: Dict[str, Any] = {
 
 SPIRIT: Dict[str, Any] = {
     "name": "Light Spirit of Samurai Gurenmaru",
-    "max_health": 100,
+    "max_health": 5,
     "speed": 120.0,
     # How opaque the spirit is at most, and how much it flickers below that.
     "alpha": 150.0,
