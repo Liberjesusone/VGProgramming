@@ -19,6 +19,7 @@ from typing import Any
 
 import pygame
 
+from src import audio
 from src.combat.cone import contains_point, polygon_points
 from src.combat.visuals import ENEMY_TELEGRAPH_COLOR, draw_translucent_polygon
 from src.definitions.combat import lerp
@@ -37,6 +38,8 @@ class EnemyAttackState(EnemyBaseState):
         self.charge = charge
         self.aim = aim
         self.elapsed = 0.0
+
+        audio.play(attack.get("sound"))
 
         if attack["kind"] == "melee":
             self._melee_strike(attack)
@@ -66,6 +69,7 @@ class EnemyAttackState(EnemyBaseState):
                 attack["damage"],
                 attack["stun"],
                 attack["projectile_speed"],
+                land_sound=attack.get("land_sound"),
             )
         )
 

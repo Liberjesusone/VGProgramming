@@ -21,10 +21,14 @@ from gale.text import render_text
 
 import settings
 from actions import CONFIRM
+from src import audio
 
 
 class GameOverState(BaseState):
     def enter(self) -> None:
+        audio.stop_music()
+        audio.play("you_died")
+
         self.veil = pygame.Surface(
             (settings.VIRTUAL_WIDTH, settings.VIRTUAL_HEIGHT), pygame.SRCALPHA
         )

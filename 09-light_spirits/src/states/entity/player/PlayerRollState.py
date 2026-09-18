@@ -16,6 +16,7 @@ carrying it into the roll.
 import pygame
 
 from actions import MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT, MOVE_UP
+from src import audio
 from src.states.entity.player.PlayerBaseState import PlayerBaseState
 
 DURATION = 0.45
@@ -55,6 +56,7 @@ class PlayerRollState(PlayerBaseState):
 
         # Stamina waste
         player.current_stamina -= STAMINA_COST
+        audio.play("player_roll")
 
     def update(self, dt: float) -> None:
         self.elapsed += dt

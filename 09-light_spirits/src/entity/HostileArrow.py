@@ -15,6 +15,7 @@ from typing import Any, Optional
 
 import pygame
 
+from src import audio
 from src.entity.Arrow import Arrow
 
 COLOR = (150, 235, 210)
@@ -41,6 +42,7 @@ class HostileArrow(Arrow):
             return
 
         if player.image_rect.collidepoint(self.x, self.y):
+            audio.play("arrow_impact_body")
             player.damage(self.damage, self.stun, self.position - self.direction * 20)
             self.dead = True
 

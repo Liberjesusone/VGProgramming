@@ -45,7 +45,7 @@ WEAPON_DEFS: Dict[str, Dict[str, Any]] = {
         "min_speed": 220.0,
         "max_speed": 940.0,
         "min_damage": 1,
-        "max_damage": 2,
+        "max_damage": 3,
         "min_range": 60.0,
         "max_range": 540.0,
     },
@@ -69,7 +69,7 @@ WEAPON_DEFS: Dict[str, Dict[str, Any]] = {
         "min_reach": 46.0,
         "max_reach": 78.0,
         "min_damage": 1,
-        "max_damage": 3,
+        "max_damage": 6,
     },
 }
 

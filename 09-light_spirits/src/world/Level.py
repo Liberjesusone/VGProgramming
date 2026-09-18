@@ -31,6 +31,7 @@ import pygame
 from gale.tilemap import TileMap, Tileset
 
 import settings
+from src import audio
 from src.definitions.props import PROP_DEFS
 from src.entity.Enemy import Enemy
 from src.world import tiled
@@ -237,6 +238,7 @@ class Level:
                     continue
 
                 if entity.hurt_rect.collidepoint(arrow.x, arrow.y):
+                    audio.play("arrow_impact_body")
                     entity.damage(arrow.damage)
                     entity.provoke()
                     arrow.dead = True

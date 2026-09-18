@@ -16,10 +16,13 @@ import pygame
 from gale.state import BaseState
 from gale.text import render_text
 
+from src import audio
 from src.states.game.PlayState import PlayState
 
 import settings
 from actions import CONFIRM
+
+TITLE_MUSIC = "title_screen_soundtrack"
 
 """ How dark the vignette gets at the very corners (0 = no darkening,
 255 = fully black), and how much of the image around the centre stays
@@ -73,6 +76,13 @@ class StartState(BaseState):
 
     def update(self, dt: float) -> None:
         self.elapsed += dt
+
+        """ Started here rather than in enter: a state under the top of the
+        stack is never entered again when the one above it is popped, so
+        this is what brings the music back after a run, once whatever that
+        run left playing (the ending's own track) has finished. """
+        if not audio.music_playing():
+            audio.play_music(TITLE_MUSIC)
 
     def on_input(self, input_id: str, input_data: Any) -> None:
         # Start the game itself

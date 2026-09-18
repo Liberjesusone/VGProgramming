@@ -21,6 +21,7 @@ from actions import (
     CONFIRM,
     DEBUG,
     DEBUG_BOSS,
+    HEAL,
     MOVE_DOWN,
     MOVE_LEFT,
     MOVE_RIGHT,
@@ -45,6 +46,7 @@ input_handler.InputHandler.set_keyboard_action(input_handler.KEY_F1, DEBUG)
 input_handler.InputHandler.set_keyboard_action(input_handler.KEY_F2, DEBUG_BOSS)
 input_handler.InputHandler.set_keyboard_action(input_handler.KEY_q, SWITCH_WEAPON)
 input_handler.InputHandler.set_keyboard_action(input_handler.KEY_SPACE, ROLL)
+input_handler.InputHandler.set_keyboard_action(input_handler.KEY_r, HEAL)
 
 """ The sword: held to charge, released to swing. No motion binding is
 registered here on purpose, an action bound with InputHandler is
@@ -321,30 +323,57 @@ FONTS = {
 # ------------------------------------------------------------
 # Sounds
 # ------------------------------------------------------------
-def _load_sounds() -> Dict[str, "pygame.mixer.Sound"]:
-    """ Every .wav or .ogg in assets/sounds, keyed by its file name without
-    the extension. Anything asking for a sound that is not there, or a
-    machine with no audio device at all, simply gets silence (see
-    src/audio.py), never an error. """
-    folder = BASE_DIR / "assets" / "sounds"
+""" Two kinds of audio, kept in two folders:
 
-    if not folder.is_dir():
-        return {}
+assets/sounds holds short effects, loaded whole into memory up front so
+they play the instant they are asked for, several at once if need be.
 
+assets/music holds long tracks, only ever streamed from disk one at a
+time through pygame.mixer.music, so a five minute soundtrack never sits
+decoded in memory.
+
+Both are keyed by file name without the extension. A machine with no
+audio device at all gets silence (see src/audio.py), never an error. """
+AUDIO_EXTENSIONS = (".wav", ".ogg", ".mp3")
+
+""" How many effects can sound at the same time. pygame's default of 8 is
+easily used up by a few enemies swinging at once, and once every channel
+is busy a new effect is simply dropped. """
+SOUND_CHANNELS = 32
+
+
+def _init_mixer() -> bool:
     try:
         if not pygame.mixer.get_init():
             pygame.mixer.init()
     except pygame.error:
+        return False
+
+    pygame.mixer.set_num_channels(SOUND_CHANNELS)
+    return True
+
+
+def _audio_files(folder_name: str) -> Dict[str, pathlib.Path]:
+    folder = BASE_DIR / "assets" / folder_name
+
+    if not folder.is_dir():
         return {}
 
     return {
-        path.stem: pygame.mixer.Sound(str(path))
+        path.stem: path
         for path in sorted(folder.iterdir())
-        if path.suffix.lower() in (".wav", ".ogg")
+        if path.suffix.lower() in AUDIO_EXTENSIONS
     }
 
 
-SOUNDS = _load_sounds()
+AUDIO_ENABLED = _init_mixer()
+
+SOUNDS = (
+    {name: pygame.mixer.Sound(str(path)) for name, path in _audio_files("sounds").items()}
+    if AUDIO_ENABLED else {}
+)
+
+MUSIC = _audio_files("music") if AUDIO_ENABLED else {}
 
 
 # ------------------------------------------------------------

@@ -16,10 +16,11 @@ Level.projectiles, since it hurts the player and never an enemy.
 """
 
 import math
-from typing import Any
+from typing import Any, Optional
 
 import pygame
 
+from src import audio
 from src.combat.visuals import ENEMY_TELEGRAPH_COLOR, draw_translucent_circle
 
 # Peak height of the arc above the straight line to the target, in pixels.
@@ -41,12 +42,15 @@ class AreaShot:
         stun: str,
         speed: float,
         delay: float = 0.0,
+        land_sound: Optional[str] = None,
     ) -> None:
         """ origin and target are both points on the ground; origin_height
         is how far above its own ground point the shot leaves from, so it
         visibly starts at the shooter's hands and ends in the dirt. delay
         holds the shot back that many seconds before it leaves, its circle
-        already showing on the ground, so a volley comes down staggered. """
+        already showing on the ground, so a volley comes down staggered.
+        land_sound plays where it lands; a volley leaves it out and plays one
+        sound for the whole rain instead of one per arrow. """
         self.origin = pygame.Vector2(origin)
         self.origin_height = origin_height
         self.target = pygame.Vector2(target)
@@ -54,6 +58,7 @@ class AreaShot:
         self.damage = damage
         self.stun = stun
         self.delay = delay
+        self.land_sound = land_sound
 
         distance = (self.target - self.origin).length()
         self.flight_time = max(MIN_FLIGHT_TIME, distance / speed)
@@ -87,6 +92,7 @@ class AreaShot:
         if self.elapsed < self.delay + self.flight_time:
             return
 
+        audio.play(self.land_sound)
         feet = pygame.Vector2(player.x, player.y)
 
         if (feet - self.target).length() <= self.radius:

@@ -23,6 +23,7 @@ from typing import Any, Set
 import pygame
 import settings
 
+from src import audio
 from src.combat.cone import contains_point, polygon_points
 from src.definitions.combat import lerp
 from src.states.entity.player.PlayerBaseState import PlayerBaseState
@@ -67,6 +68,7 @@ class PlayerAttackState(PlayerBaseState):
 
         # Stamina waste
         player.current_stamina -= MELEE_STAMINA_COST if charge < self.time_in_charge1_percent  else MELEE_STAMINA_HIGH_COST
+        audio.play("sword_swing")
 
         for entity in player.level.entities:
             if entity in already_hit or not entity.hittable:

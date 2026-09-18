@@ -90,6 +90,7 @@ class BossStrikeState(BossBaseState):
         self.phase = "swing"
         self.elapsed = 0.0
         boss.pose = strike["poses"][2]
+        audio.play(strike.get("sound"))
 
         if contains_point(boss.center, self.aim, strike["half_angle"], strike["reach"], player.center):
             player.damage(strike["damage"], strike["stun"], boss.center)

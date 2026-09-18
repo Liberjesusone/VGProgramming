@@ -24,6 +24,7 @@ damage / stun: what a landed hit does, stun is None or a key of
 swing: seconds the release pose holds.
 recovery: seconds of standing still after the swing, before deciding again.
 lunge: pixels the boss steps forward along its aim during the swing.
+sound: optional effect played the instant the strike is released.
 cue: optional sound and camera shake at the lock moment, the warning.
 impact_shake: optional camera shake at the release, (magnitude, seconds).
 
@@ -34,7 +35,7 @@ from typing import Any, Dict
 
 SAMURAI: Dict[str, Any] = {
     "name": "Samurai Gurenmaru",
-    "max_health": 5,
+    "max_health": 70,
     "aggro_radius": 230.0,
     "speed": 130.0,
     # How often the pursuit rolls for a surprise dash, so the chance
@@ -66,6 +67,7 @@ SAMURAI: Dict[str, Any] = {
             "reach": 96.0,
             "damage": 2,
             "stun": "light",
+            "sound": "sword_swing",
             "swing": 0.3,
             "recovery": 0.55,
             "lunge": 14.0,
@@ -78,6 +80,7 @@ SAMURAI: Dict[str, Any] = {
             "reach": 96.0,
             "damage": 2,
             "stun": "light",
+            "sound": "sword_swing",
             "swing": 0.3,
             "recovery": 0.7,
             "lunge": 18.0,
@@ -93,7 +96,7 @@ SAMURAI: Dict[str, Any] = {
             "swing": 0.4,
             "recovery": 0.15,
             "lunge": 0.0,
-            "cue": {"sound": "samurai_thrust_cue", "shake": (4.0, 0.35)},
+            "cue": {"sound": "samurai_thrust", "shake": (4.0, 0.35)},
             "impact_shake": (3.0, 0.25),
         },
         # The three fast hits that always follow the thrust, landed or not.
@@ -106,6 +109,7 @@ SAMURAI: Dict[str, Any] = {
             "reach": 90.0,
             "damage": 2,
             "stun": None,
+            "sound": "sword_swing",
             "swing": 0.2,
             "recovery": 0.05,
             "lunge": 22.0,
@@ -115,7 +119,7 @@ SAMURAI: Dict[str, Any] = {
 
 SPIRIT: Dict[str, Any] = {
     "name": "Light Spirit of Samurai Gurenmaru",
-    "max_health": 5,
+    "max_health": 70,
     "speed": 120.0,
     # How opaque the spirit is at most, and how much it flickers below that.
     "alpha": 150.0,
@@ -180,6 +184,7 @@ SPIRIT: Dict[str, Any] = {
             "reach": 74.0,
             "damage": 1,
             "stun": "launch",
+            "sound": "sword_swing",
             "swing": 0.25,
             "recovery": 0.05,
             "lunge": 0.0,

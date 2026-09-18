@@ -29,6 +29,8 @@ charge1_fraction: charge at which the pose flips from charge1 to charge2.
 advance_while_charging: whether the enemy keeps closing in, slowed down
     by combat.CHARGE_SPEED_FACTORS, or plants its feet while winding up.
 stun: "light" or "heavy", see combat.STUNS.
+sound: optional effect played the instant the attack is released.
+land_sound: optional effect an area shot plays where it lands.
 swing_duration: seconds the attack pose holds after release.
 recovery: seconds of standing idle after that, before chasing again.
 
@@ -39,7 +41,7 @@ from typing import Any, Dict
 
 ENEMY_DEFS: Dict[str, Dict[str, Any]] = {
     "zombie": {
-        "max_health": 7,
+        "max_health": 13,
         "speed": 110.0,
         "aggro_radius": 280.0,
         "attack": {
@@ -50,18 +52,19 @@ ENEMY_DEFS: Dict[str, Dict[str, Any]] = {
             "charge1_fraction": 0.5,
             "advance_while_charging": True,
             "stun": "light",
+            "sound": "sword_swing",
             "swing_duration": 0.3,
             "recovery": 0.8,
             "min_half_angle": 25.0,
             "max_half_angle": 50.0,
             "min_reach": 44.0,
             "max_reach": 70.0,
-            "min_damage": 1,
-            "max_damage": 2,
+            "min_damage": 2,
+            "max_damage": 5,
         },
     },
     "witch": {
-        "max_health": 5,
+        "max_health": 9,
         "speed": 80.0,
         "aggro_radius": 280.0,
         "attack": {
@@ -77,8 +80,9 @@ ENEMY_DEFS: Dict[str, Dict[str, Any]] = {
             "swing_duration": 0.25,
             "recovery": 1.2,
             "radius": 34.0,
-            "damage": 1,
+            "damage": 3,
             "projectile_speed": 260.0,
+            "land_sound": "arrow_hit",
         },
     },
     "golem": {
@@ -93,6 +97,7 @@ ENEMY_DEFS: Dict[str, Dict[str, Any]] = {
             "charge1_fraction": 0.5,
             "advance_while_charging": True,
             "stun": "heavy",
+            "sound": "golem_hit",
             "swing_duration": 0.45,
             "recovery": 1.4,
             "min_half_angle": 35.0,
@@ -100,7 +105,7 @@ ENEMY_DEFS: Dict[str, Dict[str, Any]] = {
             "min_reach": 60.0,
             "max_reach": 92.0,
             "min_damage": 2,
-            "max_damage": 3,
+            "max_damage": 8,
         },
     },
 }

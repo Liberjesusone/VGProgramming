@@ -28,8 +28,11 @@ from typing import Any, Optional
 import pygame
 
 import settings
+from src import audio
 from src.entity.SamuraiBoss import SamuraiBoss
 from src.entity.SpiritBoss import SpiritBoss
+
+FIGHT_MUSIC = "boss_fight_soundtrack"
 
 FELLED_TIME = 4.0
 ENDING_TIME = 4.0
@@ -112,12 +115,18 @@ class BossFight:
         self.timer += dt
 
         if self.phase == "dormant" and self.samurai.awake:
+            audio.play_music(FIGHT_MUSIC)
             self._enter("samurai")
         elif self.phase == "samurai" and self.samurai.health <= 0:
+            audio.stop_music()
+            audio.play("samurai_die")
             self.samurai.change_state("felled")
             self.level.hazards.clear()
             self._enter("felled")
         elif self.phase == "felled" and self.timer >= FELLED_TIME:
+            # The fight music comes back the moment the spirit's own track ends.
+            audio.play_music("spirit_emerges", loops=0)
+            audio.queue_music(FIGHT_MUSIC)
             self.spirit = SpiritBoss(self.samurai.x, self.samurai.y, self.level)
             self.level.entities.append(self.spirit)
             self._enter("emerging")
@@ -129,6 +138,8 @@ class BossFight:
         self._update_lag(dt)
 
     def _begin_ending(self, player: Any) -> None:
+        # Shorter than the whole ending, so it always plays out in full.
+        audio.play_music("disolves_and_final_animation", loops=0)
         self.spirit.change_state("dissolve", "defeated", 1.0, "dissolve", 2.4)
         self.samurai.change_state("dissolve", "defeated", 0.4, "defeated", 3.0)
         self.level.hazards.clear()

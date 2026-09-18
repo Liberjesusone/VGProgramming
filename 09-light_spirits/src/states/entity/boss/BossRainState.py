@@ -21,6 +21,7 @@ from typing import Any
 
 import pygame
 
+from src import audio
 from src.combat.visuals import ENEMY_TELEGRAPH_COLOR, draw_translucent_circle
 from src.entity.AreaShot import AreaShot
 from src.states.entity.boss.BossBaseState import BossBaseState
@@ -58,6 +59,9 @@ class BossRainState(BossBaseState):
         rain = self.rain
         player = boss._player
         centre = pygame.Vector2(player.x, player.y)
+
+        # One sound for the whole volley: a hundred landing at once would only be noise.
+        audio.play("arrow_volley")
 
         for _ in range(rain["count"]):
             # sqrt spreads the points evenly over the disc instead of

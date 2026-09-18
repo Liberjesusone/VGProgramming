@@ -3,6 +3,27 @@
 All notable changes to this project are documented here, newest first.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Milestone 6]
+
+### Added
+
+- Music, Dark Souls style: the title screen has its own soundtrack, exploring the ruins is silent, and the boss fight's soundtrack starts the moment the samurai wakes. It cuts out when he falls, the Light Spirit rises to its own track, and the fight music comes back the instant that track ends, with no gap. The ending plays its own track in full, and the title music returns once it is over.
+- Sound effects for every hit and action: sword swings (player, zombie, both boss forms), the golem's slam, the samurai's thrust warning, the spirit's arrow volley (one sound for the whole rain, not one per arrow), the witch's arrow landing, arrows striking a body, the player being hit, rolling, drinking an estus flask, and "you died" on the game over screen.
+- Any number of effects play at once: two zombies and the player swinging together are three swings. The mixer now has 32 channels instead of pygame's default 8, where a new effect is silently dropped once every channel is busy.
+- `src/audio.py` grows from a single `play` into the whole audio interface: `play` for effects, and `play_music`, `queue_music` and `stop_music` for the single music stream. A missing file, or a machine with no audio device, plays nothing instead of raising.
+- Estus flasks: 4 per run, `R` drinks one and restores 40% of the maximum health. Only while standing or walking, the same as a roll, and never at full health, where it would only waste the flask.
+- A Dark Souls quick item cross in the bottom left corner of the HUD: the bow above, the sword to the left, the quiver to the right and the estus below. The weapon not in hand is drawn faded, and the estus shows how many flasks are left, switching to an empty flask with no number once they run out.
+
+### Changed
+
+- Audio is split into two folders: `assets/sounds` holds short effects, loaded into memory up front so they play instantly; `assets/music` holds long tracks, streamed from disk one at a time so a five minute soundtrack never sits decoded in memory.
+- The two `.m4a` tracks, a format pygame cannot read, and the 58 MB title soundtrack were converted to `.ogg` (the title track is now 5.8 MB). The originals are archived in `assets/source/sounds`, kept out of the repository like every other source asset.
+- Each enemy attack and boss strike names its own sound in `ENEMY_DEFS`/`bosses.py` (`sound`, and `land_sound` for the witch's lobbed shot), the same data-driven way every other part of an attack is tuned.
+
+### Removed
+
+- `samurai_thrust_cue.wav`, a placeholder borrowed from an earlier project; the thrust now warns with its own `samurai_thrust` sound.
+
 ## [Milestone 5]
 
 ### Added

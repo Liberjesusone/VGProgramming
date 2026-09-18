@@ -19,6 +19,7 @@ from gale.text import render_text
 
 import settings
 from actions import DEBUG, DEBUG_BOSS
+from src import audio
 from src.entity.Player import Player
 from src.world.BossFight import BossFight
 from src.world.Level import Level
@@ -33,6 +34,9 @@ DEBUG_BOSS_OFFSET = 200
 
 class PlayState(BaseState):
     def enter(self) -> None:
+        # Exploring is silent, as in Dark Souls: only the boss fight has music.
+        audio.stop_music()
+
         self.level = Level()
 
         spawn_x, spawn_y = self.level.spawn_point()

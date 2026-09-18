@@ -30,7 +30,8 @@ import pygame
 from gale.state import StateMachine
 
 import settings
-from actions import ATTACK, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT, MOVE_UP, ROLL, SWITCH_WEAPON
+from actions import ATTACK, HEAL, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT, MOVE_UP, ROLL, SWITCH_WEAPON
+from src import audio
 from src.combat.visuals import flashed
 from src.definitions.combat import HIT_FLASH_TIME
 from src.definitions.weapons import WEAPON_DEFS, WEAPON_ORDER
@@ -68,6 +69,25 @@ MAX_HEALTH = 50
 HUD_BAR_GAP = 3
 HUD_HEALTH_BORDER_COLOR = (98, 50, 48)
 HUD_HEALTH_FILL_COLOR = (168, 62, 58)
+
+# Estus flasks: how many a run starts with, and how much of the maximum health each one restores.
+ESTUS_CHARGES = 4
+ESTUS_HEAL_FRACTION = 0.4
+
+""" The quick items, a cross of four slots in the bottom left corner the
+way Dark Souls lays them out: the bow above, the sword to the left, the
+quiver to the right and the estus below. The weapon not in hand is drawn
+faded, so the cross also shows which one is equipped. Each entry is the
+slot's offset from the centre of the cross, in slots. """
+QUICK_ITEM_SLOTS = {
+    "bow": (0, -1),
+    "sword": (-1, 0),
+    "quiver": (1, 0),
+    "estus": (0, 1),
+}
+QUICK_ITEM_MARGIN = 8
+QUICK_ITEM_GAP = 2
+QUICK_ITEM_FADED_ALPHA = 90
 
 """ The roll's own texture keys, read directly instead of through
 weapon_def like every other pose: a roll is not part of either weapon's
@@ -154,6 +174,16 @@ class Player:
         # Seconds left of the tint shown right after taking damage.
         self.hit_flash: float = 0.0
 
+        self.estus: int = ESTUS_CHARGES
+
+        # The weapon icons as drawn when that weapon is not in hand, faded once here.
+        self._faded_weapon_icons: Dict[str, pygame.Surface] = {}
+
+        for weapon in WEAPON_ORDER:
+            icon = settings.TILESETS["hud"][f"hud_{weapon}"].copy()
+            icon.set_alpha(QUICK_ITEM_FADED_ALPHA)
+            self._faded_weapon_icons[weapon] = icon
+
         """ Sized off the feet's own footprint, not off the sprite's
         silhouette: a weapon held out to one side makes the *picture*
         wider in some directions than others, but the character is not
@@ -194,6 +224,7 @@ class Player:
         if self.invulnerable:
             return
 
+        audio.play("player_receive_dmg")
         self.health = max(0, self.health - amount)
         self.hit_flash = HIT_FLASH_TIME
 
@@ -286,6 +317,21 @@ class Player:
     def _aim_bucket(self) -> str:
         return self._bucket_direction(self.aim_direction)
 
+    def drink_estus(self) -> None:
+        """ Spends one flask to restore ESTUS_HEAL_FRACTION of the maximum
+        health. Only from idle or walk, the same as a roll, never mid-swing
+        or while staggered, and never at full health, where it would only
+        waste the flask. """
+        if self.estus == 0 or self.health >= MAX_HEALTH:
+            return
+
+        if not isinstance(self.state_machine.current, (player_states.PlayerIdleState, player_states.PlayerWalkState)):
+            return
+
+        self.estus -= 1
+        self.health = min(MAX_HEALTH, self.health + round(MAX_HEALTH * ESTUS_HEAL_FRACTION))
+        audio.play("stus_flask")
+
     def can_switch_weapon(self) -> bool:
         """ Not mid-charge and not mid-attack, switching weapons while
         either is in progress would either strand a charge built up for
@@ -324,11 +370,15 @@ class Player:
             self.switch_weapon()
             return
 
-        if input_id == ROLL and input_data.pressed and self.current_stamina >= MIN_STAMINA: 
+        if input_id == ROLL and input_data.pressed and self.current_stamina >= MIN_STAMINA:
             # Only queued from Idle/Walk: requesting it mid-swing or mid-roll
             if isinstance(self.state_machine.current,
                          (player_states.PlayerIdleState, player_states.PlayerWalkState)):
                 self.roll_requested = True
+            return
+
+        if input_id == HEAL and input_data.pressed:
+            self.drink_estus()
             return
 
         if input_id in self.held:
@@ -400,6 +450,37 @@ class Player:
             surface, stamina_top + HUD_BAR_HEIGHT + HUD_BAR_GAP, self.health / MAX_HEALTH,
             HUD_HEALTH_FILL_COLOR, HUD_HEALTH_BORDER_COLOR,
         )
+        self._render_quick_items(surface)
+
+    def _render_quick_items(self, surface: pygame.Surface) -> None:
+        hud = settings.TILESETS["hud"]
+        slot = hud["hud_slot"]
+        step_x = slot.get_width() + QUICK_ITEM_GAP
+        step_y = slot.get_height() + QUICK_ITEM_GAP
+
+        # The centre of the cross, placed so its left and bottom slots sit QUICK_ITEM_MARGIN from the edges.
+        centre_x = QUICK_ITEM_MARGIN + slot.get_width() / 2 + step_x
+        centre_y = settings.VIRTUAL_HEIGHT - QUICK_ITEM_MARGIN - slot.get_height() / 2 - step_y
+
+        icons = {
+            "quiver": hud["hud_quiver"],
+            "estus": hud["hud_flask_full"] if self.estus > 0 else hud["hud_flask_empty"],
+        }
+
+        for weapon in WEAPON_ORDER:
+            in_hand = weapon == self.equipped_weapon
+            icons[weapon] = hud[f"hud_{weapon}"] if in_hand else self._faded_weapon_icons[weapon]
+
+        for item, (offset_x, offset_y) in QUICK_ITEM_SLOTS.items():
+            centre = (round(centre_x + offset_x * step_x), round(centre_y + offset_y * step_y))
+            surface.blit(slot, slot.get_rect(center=centre))
+            surface.blit(icons[item], icons[item].get_rect(center=centre))
+
+        # How many flasks are left, in the estus slot's lower right corner; an empty flask shows no number.
+        if self.estus > 0:
+            estus_slot = slot.get_rect(center=(round(centre_x), round(centre_y + step_y)))
+            count = settings.FONTS["small"].render(str(self.estus), True, settings.COLOR_TEXT)
+            surface.blit(count, count.get_rect(bottomright=(estus_slot.right - 3, estus_slot.bottom - 2)))
 
     def _render_bar(
         self, surface: pygame.Surface, top: int, fraction: float,
